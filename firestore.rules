@@ -1,0 +1,35 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function ownsText(textId) {
+      return signedIn() && exists(/databases/$(database)/documents/texts/$(textId))
+        && get(/databases/$(database)/documents/texts/$(textId)).data.userId == request.auth.uid;
+    }
+    match /texts/{textId} {
+      allow read, delete: if signedIn() && resource.data.userId == request.auth.uid;
+      allow create: if signedIn()
+        && request.resource.data.keys().hasAll(['userId', 'title', 'rawText', 'type', 'chunks', 'createdAt'])
+        && request.resource.data.keys().hasOnly(['userId', 'title', 'rawText', 'type', 'chunks', 'createdAt'])
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.title is string
+        && request.resource.data.title.size() > 0 && request.resource.data.title.size() <= 120
+        && request.resource.data.rawText is string
+        && request.resource.data.rawText.size() > 0 && request.resource.data.rawText.size() <= 60000
+        && request.resource.data.type in ['prosa', 'poesia']
+        && request.resource.data.chunks is list
+        && request.resource.data.chunks.size() > 0 && request.resource.data.chunks.size() <= 1000
+        && request.resource.data.createdAt == request.time;
+      allow update: if false;
+      match /progress/{chunkId} {
+        allow read, delete: if ownsText(textId);
+        allow create, update: if ownsText(textId) && chunkId.matches('chunk_[0-9]+')
+          && request.resource.data.keys().hasAll(['interval', 'ease', 'nextReview'])
+          && request.resource.data.keys().hasOnly(['interval', 'ease', 'nextReview'])
+          && request.resource.data.interval is int && request.resource.data.interval >= 0
+          && request.resource.data.ease is number && request.resource.data.ease >= 1.3
+          && request.resource.data.nextReview is int && request.resource.data.nextReview >= 0;
+      }
+    }
+  }
+}

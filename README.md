@@ -2,6 +2,8 @@
 
 Aplicación web de repetición espaciada para prosa y poesía: React 18.3.1, Vite y Firebase 10.14.1 modular (Authentication y Firestore). Todos los componentes están escritos en JavaScript y JSX. Los temas medieval, claro y oscuro se conservan en el navegador.
 
+La evolución al Método Ícaro ya incorpora contratos versionados, preparación y simulación segura del legado y palacios/macros/loci persistentes. Funciona con Firebase Spark, sin Cloud Functions. El Taller y el repaso escalonado son los siguientes hitos; el estudio clásico permanece disponible. Consulta el [diagnóstico y plan](docs/architecture/icarus-roadmap.md), la [decisión Spark](docs/architecture/ADR-spark.md) y la [guía de fundamentos](docs/phase-1-foundations.md).
+
 ## Desarrollo
 
 Requiere Node.js 22.12 o superior. Ejecuta `npm ci` y `npm run dev`. `npm run build` genera `dist`, `npm run preview` permite comprobar esa compilación, `npm run lint` revisa el código y `npm test` ejecuta las pruebas del algoritmo.
@@ -13,8 +15,8 @@ Coloca la fuente original `CloisterBlack.ttf` en `public/fonts/CloisterBlack.ttf
 ## Firebase y Vercel
 
 1. En Firebase activa Email/Password en Authentication y crea Firestore.
-2. Sustituye las reglas del modo prueba por el archivo `firestore.rules`. Cada cuenta puede leer y borrar sus propios textos y escribir exclusivamente su progreso. El query de la biblioteca filtra por userId y ordena los resultados localmente; no requiere un índice compuesto.
-3. Para publicar reglas desde tu máquina autenticada: `npx firebase-tools@15.33.0 deploy --only firestore:rules --project memorizador-solar-v2-52668`. También puedes copiar el archivo en el editor de reglas de Firebase.
+2. Sustituye las reglas del modo prueba por el archivo `firestore.rules`. Las cuentas conservan acceso a sus textos/progreso clásicos; la jerarquía Ícaro usa reglas específicas de propiedad, versiones e historial. La biblioteca clásica no requiere índices compuestos; los espacios necesitan los dos declarados en `firestore.indexes.json`.
+3. Para publicar reglas e índices desde tu máquina autenticada: `npx firebase-tools@15.33.0 deploy --only firestore --project memorizador-solar-v2-52668`. También puedes copiar las reglas en el editor de Firebase y crear los índices declarados. Espera a que estén listos antes de activar espacios.
 4. En Vercel importa el repositorio, selecciona Vite, usa `npm run build` como build command y `dist` como output directory. Añade las variables VITE_FIREBASE de tu configuración web para Production y Preview. VITE_USE_FIREBASE_EMULATORS debe ser false o estar ausente. Vite incorpora estas variables en la compilación; vuelve a desplegar después de cambiarlas.
 5. Añade los dominios que uses a los dominios autorizados de Authentication. Comprueba registro, login y acceso de dos cuentas distintas tras el despliegue.
 
@@ -30,4 +32,4 @@ El formulario admite títulos de hasta 120 caracteres, textos de hasta 60.000 ca
 
 Usa un proyecto demo independiente, `demo-memorizador-solar`. Con Java 21 instalado, `npx firebase-tools@15.33.0 emulators:start --only auth,firestore --project demo-memorizador-solar` utiliza firebase.json y las reglas de este repositorio. Inicia otra instancia de Vite en el puerto 5180 con VITE_USE_FIREBASE_EMULATORS=true y configuración web de demo; nunca uses el proyecto real en estas pruebas. La aplicación solo permite conectarse a emuladores en modo desarrollo.
 
-`tests/e2e.mjs` comprueba en Chromium registro, login, temas, fragmentación, tarjetas, atajos, las cuatro calificaciones, persistencia, pendientes, aislamiento entre cuentas, eliminación del progreso y layout móvil. Requiere Playwright y Chromium disponibles, la aplicación demo en 127.0.0.1:5180 y los emuladores en 9099 y 8080. En este entorno cloud ya están disponibles Playwright y `/usr/bin/chromium`; ejecuta `node tests/e2e.mjs` una vez iniciados los servicios. Los tests no acceden al proyecto Firebase real.
+`tests/e2e.mjs` comprueba en Chromium registro, login, temas, fragmentación, tarjetas, atajos, las cuatro calificaciones, persistencia, pendientes, aislamiento entre cuentas, eliminación del progreso y layout móvil. Playwright está declarado; requiere Chromium y la aplicación demo en 127.0.0.1:5180 (o E2E_BASE_URL local), con emuladores en 9099 y 8080. Activa los dos flags Ícaro y ejecuta `E2E_REQUIRE_PREPARATION=true E2E_REQUIRE_SPACES=true npm run test:e2e` para incluir fundamentos y espacios. `npm run test:rules` comprueba las reglas y transacciones en el emulador Firestore; ejecútalo antes, nunca simultáneamente con E2E. Los tests no acceden al proyecto Firebase real.

@@ -6,9 +6,96 @@ service cloud.firestore {
       return signedIn() && exists(/databases/$(database)/documents/texts/$(textId))
         && get(/databases/$(database)/documents/texts/$(textId)).data.userId == request.auth.uid;
     }
+    function owner(uid) { return signedIn() && request.auth.uid == uid; }
+    function legacyWritesAllowed(uid) {
+      return !exists(/databases/$(database)/documents/users/$(uid)/settings/profile)
+        || get(/databases/$(database)/documents/users/$(uid)/settings/profile).data.get('legacyWritesLocked', false) == false;
+    }
+    function spacePath(uid, kind, id) {
+      return /databases/$(database)/documents/users/$(uid)/$(kind)/$(id);
+    }
+    function nonblank(value, limit) {
+      return value is string && value.size() > 0 && value.size() <= limit
+        && value.matches('[\\s\\S]*\\S[\\s\\S]*');
+    }
+    function spaceBase(data, uid, id) {
+      return data.id == id && data.userId == uid && data.schemaVersion == 1
+        && data.version is int && data.version >= 1 && data.version <= 1000000000
+        && data.createdAt is timestamp
+        && data.creationRequestHash is string && data.creationRequestHash.matches('sha256:[0-9a-f]{64}');
+    }
+    function newSpace(data, uid, id) {
+      return spaceBase(data, uid, id) && data.version == 1 && data.createdAt == request.time;
+    }
+    function boundedCounter(value) { return value is int && value >= 0 && value <= 1000000; }
+    function ordinal(value) { return value is int && value >= 0 && value <= 1000000; }
+    function palaceShape(data, uid, id) {
+      return data.keys().hasOnly(['id', 'userId', 'schemaVersion', 'version', 'createdAt', 'creationRequestHash', 'title', 'description', 'lifecycle', 'activeMacroCount', 'lastMutation'])
+        && spaceBase(data, uid, id) && nonblank(data.title, 120)
+        && data.description is string && data.description.size() <= 4000
+        && data.lifecycle in ['active', 'archived'] && boundedCounter(data.activeMacroCount);
+    }
+    function macroShape(data, uid, id) {
+      return data.keys().hasOnly(['id', 'userId', 'schemaVersion', 'version', 'createdAt', 'creationRequestHash', 'palaceId', 'name', 'spatialCue', 'ordinal', 'lifecycle', 'activeLocusCount', 'lastMutation'])
+        && spaceBase(data, uid, id) && nonblank(data.name, 120) && nonblank(data.spatialCue, 4000)
+        && data.palaceId is string && data.palaceId.size() > 0 && !data.palaceId.matches('.*[/].*')
+        && ordinal(data.ordinal) && data.lifecycle in ['active', 'archived'] && boundedCounter(data.activeLocusCount);
+    }
+    function sensory(values) {
+      return values is list && values.size() <= 6
+        && (values.size() < 1 || nonblank(values[0], 200))
+        && (values.size() < 2 || nonblank(values[1], 200))
+        && (values.size() < 3 || nonblank(values[2], 200))
+        && (values.size() < 4 || nonblank(values[3], 200))
+        && (values.size() < 5 || nonblank(values[4], 200))
+        && (values.size() < 6 || nonblank(values[5], 200));
+    }
+    function locusShape(data, uid, id) {
+      return data.keys().hasOnly(['id', 'userId', 'schemaVersion', 'version', 'createdAt', 'creationRequestHash', 'palaceId', 'macroId', 'name', 'anchorDescription', 'sensoryCues', 'ordinal', 'state', 'activeEncodingId', 'usageCountLifetime'])
+        && spaceBase(data, uid, id) && nonblank(data.name, 120) && nonblank(data.anchorDescription, 4000)
+        && data.palaceId is string && data.palaceId.size() > 0 && !data.palaceId.matches('.*[/].*')
+        && data.macroId is string && data.macroId.size() > 0 && !data.macroId.matches('.*[/].*')
+        && ordinal(data.ordinal) && sensory(data.sensoryCues)
+        && data.state in ['free', 'reserved', 'occupied', 'cooling', 'archived']
+        && boundedCounter(data.usageCountLifetime)
+        && ((data.state == 'occupied' && data.activeEncodingId is string)
+          || (data.state != 'occupied' && data.activeEncodingId == null));
+    }
+    // Every mutation retains the exact previous document (native Firestore types).
+    function hasSpaceHistory(uid, kind, id) {
+      let previous = resource.data;
+      let path = /databases/$(database)/documents/users/$(uid)/$(kind)/$(id)/revisions/$("v" + string(previous.version));
+      return request.resource.data.version == previous.version + 1
+        && getAfter(path).data == previous;
+    }
+    function parentTransition(uid, kind, id, counter, childId, action) {
+      let path = spacePath(uid, kind, id);
+      let before = get(path).data;
+      let after = getAfter(path).data;
+      let change = action == 'archive' ? -1 : 1;
+      return before.userId == uid && before.lifecycle == 'active' && after.lifecycle == 'active'
+        && after.version == before.version + 1 && after[counter] == before[counter] + change
+        && after.lastMutation == {'action': action, 'childId': childId};
+    }
+    function childTransition(uid, kind, parentId, relation, lifecycleField, counter) {
+      let mutation = request.resource.data.lastMutation;
+      let path = spacePath(uid, kind, mutation.childId);
+      let after = getAfter(path).data;
+      return mutation.keys().hasOnly(['action', 'childId'])
+        && after.userId == uid && after[relation] == parentId
+        && ((mutation.action == 'create' && !exists(path) && after.version == 1 && after[lifecycleField] == (kind == 'microStations' ? 'free' : 'active')
+            && request.resource.data[counter] == resource.data[counter] + 1)
+          || (mutation.action in ['archive', 'restore'] && get(path).data.userId == uid
+            && after.version == get(path).data.version + 1
+            && get(path).data[lifecycleField] == (mutation.action == 'archive' ? (kind == 'microStations' ? 'free' : 'active') : 'archived')
+            && after[lifecycleField] == (mutation.action == 'archive' ? 'archived' : (kind == 'microStations' ? 'free' : 'active'))
+            && request.resource.data[counter] == resource.data[counter] + (mutation.action == 'archive' ? -1 : 1)));
+    }
     match /texts/{textId} {
-      allow read, delete: if signedIn() && resource.data.userId == request.auth.uid;
+      allow read: if signedIn() && resource.data.userId == request.auth.uid;
+      allow delete: if signedIn() && resource.data.userId == request.auth.uid && legacyWritesAllowed(request.auth.uid);
       allow create: if signedIn()
+        && legacyWritesAllowed(request.auth.uid)
         && request.resource.data.keys().hasAll(['userId', 'title', 'rawText', 'type', 'chunks', 'createdAt'])
         && request.resource.data.keys().hasOnly(['userId', 'title', 'rawText', 'type', 'chunks', 'createdAt'])
         && request.resource.data.userId == request.auth.uid
@@ -22,13 +109,67 @@ service cloud.firestore {
         && request.resource.data.createdAt == request.time;
       allow update: if false;
       match /progress/{chunkId} {
-        allow read, delete: if ownsText(textId);
-        allow create, update: if ownsText(textId) && chunkId.matches('chunk_[0-9]+')
+        allow read: if ownsText(textId);
+        allow delete: if ownsText(textId) && legacyWritesAllowed(request.auth.uid);
+        allow create, update: if ownsText(textId) && legacyWritesAllowed(request.auth.uid) && chunkId.matches('chunk_[0-9]+')
           && request.resource.data.keys().hasAll(['interval', 'ease', 'nextReview'])
           && request.resource.data.keys().hasOnly(['interval', 'ease', 'nextReview'])
           && request.resource.data.interval is int && request.resource.data.interval >= 0
           && request.resource.data.ease is number && request.resource.data.ease >= 1.3
           && request.resource.data.nextReview is int && request.resource.data.nextReview >= 0;
+      }
+    }
+    match /users/{uid} {
+      allow get: if owner(uid);
+      allow list, write: if false;
+      match /palaces/{id} {
+        allow create: if owner(uid) && palaceShape(request.resource.data, uid, id) && newSpace(request.resource.data, uid, id)
+          && request.resource.data.lifecycle == 'active' && request.resource.data.activeMacroCount == 0 && request.resource.data.lastMutation == null;
+        allow update: if owner(uid) && palaceShape(request.resource.data, uid, id) && hasSpaceHistory(uid, 'palaces', id)
+          && ((request.resource.data.diff(resource.data).affectedKeys().hasOnly(['version', 'activeMacroCount', 'lastMutation'])
+              && resource.data.lifecycle == 'active' && childTransition(uid, 'macroStations', id, 'palaceId', 'lifecycle', 'activeMacroCount'))
+            || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['version', 'lifecycle'])
+              && resource.data.activeMacroCount == 0 && resource.data.lifecycle != request.resource.data.lifecycle));
+      }
+      match /macroStations/{id} {
+        allow create: if owner(uid) && macroShape(request.resource.data, uid, id) && newSpace(request.resource.data, uid, id)
+          && request.resource.data.lifecycle == 'active' && request.resource.data.activeLocusCount == 0 && request.resource.data.lastMutation == null
+          && parentTransition(uid, 'palaces', request.resource.data.palaceId, 'activeMacroCount', id, 'create');
+        allow update: if owner(uid) && macroShape(request.resource.data, uid, id) && hasSpaceHistory(uid, 'macroStations', id)
+          && ((request.resource.data.diff(resource.data).affectedKeys().hasOnly(['version', 'activeLocusCount', 'lastMutation'])
+              && resource.data.lifecycle == 'active' && childTransition(uid, 'microStations', id, 'macroId', 'state', 'activeLocusCount'))
+            || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['version', 'lifecycle'])
+              && resource.data.activeLocusCount == 0 && resource.data.lifecycle != request.resource.data.lifecycle
+              && parentTransition(uid, 'palaces', resource.data.palaceId, 'activeMacroCount', id, request.resource.data.lifecycle == 'archived' ? 'archive' : 'restore')));
+      }
+      match /microStations/{id} {
+        allow create: if owner(uid) && locusShape(request.resource.data, uid, id) && newSpace(request.resource.data, uid, id)
+          && request.resource.data.state == 'free' && request.resource.data.activeEncodingId == null && request.resource.data.usageCountLifetime == 0
+          && get(spacePath(uid, 'palaces', request.resource.data.palaceId)).data.lifecycle == 'active'
+          && get(spacePath(uid, 'macroStations', request.resource.data.macroId)).data.palaceId == request.resource.data.palaceId
+          && parentTransition(uid, 'macroStations', request.resource.data.macroId, 'activeLocusCount', id, 'create');
+        allow update: if owner(uid) && locusShape(request.resource.data, uid, id) && hasSpaceHistory(uid, 'microStations', id)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['version', 'state'])
+          && resource.data.activeEncodingId == null && request.resource.data.activeEncodingId == null
+          && ((resource.data.state == 'free' && request.resource.data.state == 'archived') || (resource.data.state == 'archived' && request.resource.data.state == 'free'))
+          && parentTransition(uid, 'macroStations', resource.data.macroId, 'activeLocusCount', id, request.resource.data.state == 'archived' ? 'archive' : 'restore');
+      }
+      match /{collectionId}/{documentId} {
+        allow read: if owner(uid) && collectionId in [
+          'sources', 'units', 'concepts', 'conceptEdges', 'palaces', 'macroStations',
+          'microStations', 'encodings', 'encodingDrafts', 'cards', 'reviewAttempts',
+          'reviewEvents', 'studySessions', 'spaceEvents', 'migrationJobs',
+          'legacyLinks', 'legacyProgress', 'settings'
+        ];
+        allow write: if false;
+        match /revisions/{revisionId} {
+          allow read: if owner(uid) && collectionId in ['sources', 'units', 'concepts', 'encodings', 'palaces', 'macroStations', 'microStations'];
+          allow create: if owner(uid) && collectionId in ['palaces', 'macroStations', 'microStations']
+            && revisionId == 'v' + string(get(spacePath(uid, collectionId, documentId)).data.version)
+            && request.resource.data == get(spacePath(uid, collectionId, documentId)).data
+            && getAfter(spacePath(uid, collectionId, documentId)).data.version == request.resource.data.version + 1;
+          allow update, delete: if false;
+        }
       }
     }
   }

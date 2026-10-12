@@ -1,0 +1,15 @@
+{
+  "name": "@icarus/domain",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./schemas": "./src/schemas.js",
+    "./codec": "./src/codec.js",
+    "./legacy": "./src/legacy.js",
+    "./segmentation": "./src/segmentation.js",
+    "./migration": "./src/migration.js",
+    "./flags": "./src/flags.js"
+  },
+  "dependencies": { "zod": "4.6.7" }
+}

@@ -9,3 +9,5 @@ dist/
 .vercel/
 coverage/
 test-results/
+.icarus-simulations/
+.icarus-backups/

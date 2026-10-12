@@ -1,0 +1,37 @@
+{
+  "userId": "fixture-user",
+  "backupId": "fixture-backup-v1",
+  "capturedAt": 1700000000000,
+  "consistency": "fixture",
+  "records": [
+    {
+      "textId": "poem",
+      "data": {
+        "userId": "fixture-user",
+        "title": "Arco y memoria",
+        "type": "poesia",
+        "rawText": "  Bajo el arco duerme el río.\r\n\r\nLa campana cuenta el frío.  ",
+        "chunks": [
+          { "id": "chunk_0", "text": "Bajo el arco duerme el río.", "order": 0 },
+          { "id": "chunk_1", "text": "La campana cuenta el frío.", "order": 1 }
+        ]
+      },
+      "progress": [{ "chunkId": "chunk_0", "data": { "interval": 8, "ease": 2.35, "nextReview": 1700691200000 } }]
+    },
+    {
+      "textId": "argument",
+      "data": {
+        "userId": "fixture-user",
+        "title": "Una inferencia",
+        "type": "prosa",
+        "rawText": "Todo hombre es mortal. Sócrates es hombre. Por tanto, Sócrates es mortal.",
+        "chunks": [
+          { "id": "chunk_0", "text": "Todo hombre es mortal.", "order": 0 },
+          { "id": "chunk_1", "text": "Sócrates es hombre.", "order": 1 },
+          { "id": "chunk_2", "text": "Por tanto, Sócrates es mortal.", "order": 2 }
+        ]
+      },
+      "progress": [{ "chunkId": "chunk_0", "data": { "interval": 0, "ease": 1.3, "nextReview": 1700000000000 } }]
+    }
+  ]
+}

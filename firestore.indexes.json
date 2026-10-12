@@ -1,1 +1,13 @@
-{ "indexes": [], "fieldOverrides": [] }
+{
+  "indexes": [
+    { "collectionGroup": "macroStations", "queryScope": "COLLECTION", "fields": [
+      { "fieldPath": "palaceId", "order": "ASCENDING" },
+      { "fieldPath": "ordinal", "order": "ASCENDING" }
+    ] },
+    { "collectionGroup": "microStations", "queryScope": "COLLECTION", "fields": [
+      { "fieldPath": "macroId", "order": "ASCENDING" },
+      { "fieldPath": "ordinal", "order": "ASCENDING" }
+    ] }
+  ],
+  "fieldOverrides": []
+}

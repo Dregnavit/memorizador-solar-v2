@@ -14,18 +14,18 @@ La base de esta evolución es el commit `117a160a04c0ffe20cdef5fb8f23c3d428404d8
 | Estudio | `StudyFlow.jsx`, revelado y cuatro notas, `writeBatch` por fragmento | Conservar como modo clásico; nuevo flujo de recuperación con estados y pistas. |
 | Programación | Fórmulas especificadas originalmente; Good usa factor fijo 2,5 | Nombrar `legacy-v1`, sin presentar como SM-2 canónico ni convertir ease a FSRS. |
 | Datos | `texts/{id}/progress/{chunkId}` con interval/ease/nextReview | No sobrescribir ni borrar durante la evolución. |
-| Assets | No se encontraron la fuente gótica ni el PNG originales en `public/` | Conservar Georgia y emblema SVG de respaldo; informar del asset pendiente. |
+| Assets | No se encontraron en el checkout auditado; el usuario los añadió en el historial remoto | Integrados `public/CloisterBlack.ttf` y `public/solmedieval1.png`; conservar las alternativas ante errores de carga. |
 
 El sistema anterior no representaba conceptos, premisas, escenas mnemónicas, lugares, encodings ni objetivos independientes. Mostrar una respuesta y calificarse no garantiza recuperación conceptual. Esas diferencias requieren lógica de dominio nueva, conservando los componentes útiles.
 
 ## Arquitectura de destino
 
-- `packages/icarus-domain`: contratos Zod, segmentación, scheduler legado, codec y migración; posteriormente gates completos, máquina de recuperación y adaptador FSRS fijado a una versión verificada.
+- `packages/icarus-domain`: contratos Zod, segmentación, scheduler legado, codec, migración, gates del Taller, máquina de recuperación y adaptador FSRS fijado a una versión verificada.
 - `src/data/firestore`: servicios del SDK modular, transacciones, consultas y respaldo; ninguna credencial Admin en el navegador.
 - `src/data/hooks`: suscripciones y estados de carga/error, independientes de la presentación.
 - `src/features/preparation`: inventario propio, verificación y simulación local.
 - `src/features/spaces`: palacios, macro-estaciones, loci y recorrido jerárquico.
-- `src/features/library`, `encoding`, `review`: siguientes módulos de ingesta, Taller y repaso.
+- `src/features/learning`: biblioteca, Taller y repaso, con lógica de dominio y persistencia separadas.
 - `firestore.rules` e índices: frontera de acceso y comprobaciones atómicas compatibles con Spark.
 
 Las entidades son colecciones hermanas bajo `users/{uid}`. Un locus es una micro-estación, no otra capa. La identidad usa IDs estables; el ordinal expresa orden. La fuente y su revisión conservan el texto; la unidad señala una porción exacta; el concepto expresa su significado; el encoding enlaza concepto, escena y lugar; cada tarjeta programa un objetivo concreto. Concepto, explicación y literalidad tendrán agendas distintas. Para poesía podrá elegirse interpretación conceptual, recitación o ambas.
@@ -36,9 +36,9 @@ Las entidades son colecciones hermanas bajo `users/{uid}`. Un locus es una micro
 | --- | --- | --- | --- |
 | 1A: preservación | Auditoría y Blueprint | Contratos versionados, respaldo tipado con hashes, plan determinista, simulación con interrupción/reanudación y restauración local; cero modificaciones del legado y cero duplicados al repetir. | Implementado y probado localmente. |
 | 1B: espacios | 1A y decisión Spark | Jerarquía persistente, loci con anclaje y señales sensoriales, IDs estables, archivado/restauración, versiones e historial; contadores concurrentes correctos, propiedad y relaciones protegidas por reglas. | Implementado; validación en emuladores. |
-| 1C: biblioteca y Taller | 1A, 1B | Fuentes/revisiones, cortes revisables, concepto lógico/interpretativo, vínculos, escena, correspondencia y prueba de entrada aprobada. Publicación atómica de encoding, ocupación y tarjetas; ninguna tarjeta Ícaro sin gate aprobado. | Pendiente. |
-| 1D: recuperación | 1C | Intento antes de revelar, pistas escalonadas con topes de nota, concepto/explicación/literalidad diferenciados; FSRS con estado completo, eventos inmutables e IDs idempotentes. | Pendiente. |
-| 1E: operación | 1C, 1D | Prueba integral de prosa y poesía, accesibilidad, seguridad y límites Spark; migración real solo tras respaldo consistente, restauración comprobada y ensayo. | Pendiente. |
+| 1C: biblioteca y Taller | 1A, 1B | Fuentes/revisiones, cortes revisables, concepto lógico/interpretativo, vínculos, escena, correspondencia y prueba de entrada aprobada. Publicación atómica de encoding, ocupación y tarjetas; ninguna tarjeta Ícaro sin gate aprobado. | Implementado y probado. |
+| 1D: recuperación | 1C | Intento antes de revelar, pistas escalonadas con topes de nota, concepto/explicación/literalidad diferenciados; FSRS con estado completo, eventos inmutables e IDs idempotentes. | Implementado y probado. |
+| 1E: operación | 1C, 1D | Prueba integral de prosa y poesía, seguridad y límites Spark; migración real solo tras respaldo consistente, restauración comprobada y ensayo. | Recorridos y reglas verificados; despliegue y migración real pendientes. |
 | 2: mapas/atrios | MVP funcional | Rutas editables, relaciones bidireccionales y variaciones reversibles; medir utilidad e interferencias. | Posterior. |
 | 3–4: asistencia y optimización | Datos suficientes | Transferencia, asistencia semántica opcional, offline reconciliado, ajuste FSRS y experimentos. | Posterior. |
 

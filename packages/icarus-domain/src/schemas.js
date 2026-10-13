@@ -23,6 +23,7 @@ export const sourceSchema = z.object({
   ...base, title: text.max(120), kind: z.enum(['prose', 'poetry']),
   lifecycle: z.enum(['active', 'archived']), currentRevisionId: idSchema,
   provenance: provenanceSchema,
+  creationRequestHash: hashSchema.optional(),
 }).strict()
 
 export const sourceRevisionSchema = z.object({
@@ -42,6 +43,7 @@ export const unitSchema = z.object({
   targetMode: z.enum(['conceptual', 'literal', 'dual']).nullable(),
   targets: z.array(targetSchema), primaryConceptId: idSchema.nullable(),
   legacyRef: z.object({ textId: idSchema, chunkId: idSchema }).strict().nullable(),
+  activeEncodingId: idSchema.nullable().optional(),
 }).strict().superRefine((unit, context) => {
   if (new Set(unit.targets).size !== unit.targets.length) context.addIssue({ code: 'custom', path: ['targets'], message: 'Objetivos duplicados.' })
   if (unit.traceStatus === 'resolved' && (unit.startOffset === null || unit.endOffset === null || unit.endOffset <= unit.startOffset)) {
@@ -59,6 +61,7 @@ export const conceptSchema = z.object({
   ...base, canonicalProposition: text, kind: z.enum(['argument', 'definition', 'explanation', 'interpretation', 'sequence']),
   terms: z.array(text), premises: z.array(text), conclusion: z.string(), whyItFollows: z.string(),
   status: z.enum(['draft', 'reviewed', 'archived']),
+  encodingId: idSchema.optional(),
 }).strict().superRefine((concept, context) => {
   if (concept.status === 'reviewed' && concept.kind === 'argument' && (!concept.premises.length || !concept.conclusion.trim() || !concept.whyItFollows.trim())) {
     context.addIssue({ code: 'custom', path: ['status'], message: 'Un argumento revisado necesita premisas, conclusión y justificación.' })
@@ -68,6 +71,7 @@ export const conceptSchema = z.object({
 export const conceptEdgeSchema = z.object({
   ...base, fromConceptId: idSchema, toConceptId: idSchema, type: edgeTypeSchema,
   explanation: text, evidenceUnitIds: z.array(idSchema),
+  encodingId: idSchema.optional(),
 }).strict().refine((edge) => edge.fromConceptId !== edge.toConceptId, 'La relación no puede enlazar el concepto consigo mismo.')
 
 const childMutationSchema = z.object({ action: z.enum(['create', 'archive', 'restore']), childId: idSchema }).strict().nullable()
@@ -113,19 +117,23 @@ export const encodingSchema = z.object({
   conceptId: idSchema, conceptVersion: version, locusId: idSchema, palaceId: idSchema, macroId: idSchema,
   scene: sceneSchema, retrievalPrompt: text, qualityGate: qualityGateSchema,
   status: z.enum(['validated', 'active', 'retired']),
+  requestHash: hashSchema.optional(), draftId: idSchema.optional(),
+  targets: z.array(z.enum(['concept', 'explanation', 'verbatim'])).min(1).max(3).optional(),
+  edgeId: idSchema.nullable().optional(),
 }).strict().refine((encoding) => encoding.status === 'retired' || passesEncodingGate(encoding.qualityGate), 'No se activa una codificación sin superar el Taller.')
 
-// El adaptador FSRS validará la serialización específica del paquete en la fase 1D.
-// Este contrato solo admite un contenedor versionado; aquí no se crea ninguna agenda FSRS.
+// scheduler.js valida la serialización completa y rechaza versiones desconocidas.
+// El codec 2 usa JSON tipado para evitar arrays anidados en documentos Firestore.
 export const schedulerEnvelopeSchema = z.object({
   algorithm: z.literal('fsrs'), packageVersion: text, codecVersion: version,
-  state: z.enum(['new', 'learning', 'review', 'relearning']), snapshot: wireValueSchema,
-}).strict().refine((scheduler) => scheduler.snapshot.type === 'map', 'El estado serializado debe ser un mapa.')
+  state: z.enum(['new', 'learning', 'review', 'relearning']), snapshot: z.union([wireValueSchema, z.string().max(20000)]),
+}).strict().refine((scheduler) => typeof scheduler.snapshot === 'string' ? scheduler.codecVersion === 2 : scheduler.snapshot.type === 'map', 'Codec de scheduler no válido.')
 
 export const cardSchema = z.object({
   ...base, unitId: idSchema, encodingId: idSchema, encodingVersion: version, target: targetSchema,
   lifecycle: z.enum(['active', 'suspended', 'archived']), scheduler: schedulerEnvelopeSchema,
   dueAt: timestampSchema, lastReviewedAt: timestampSchema.nullable(),
+  lastEventId: idSchema.nullable().optional(),
 }).strict()
 
 export const reviewEventSchema = z.object({
@@ -134,6 +142,9 @@ export const reviewEventSchema = z.object({
   attemptedBeforeReveal: z.boolean(), previousCardVersion: version, newCardVersion: version,
   reviewedAt: timestampSchema, dueBefore: timestampSchema, dueAfter: timestampSchema,
   responseRetention: z.enum(['metadata-only', 'opt-in']), attemptText: z.string().optional(),
+  successfulRecall: z.boolean().optional(), noCriticalError: z.boolean().optional(),
+  stageCompletion: z.object({ scene: z.boolean(), meaning: z.boolean(), structure: z.boolean(), verbatim: z.boolean() }).strict().optional(),
+  schedulerBefore: schedulerEnvelopeSchema.optional(), schedulerAfter: schedulerEnvelopeSchema.optional(),
 }).strict().superRefine((event, context) => {
   if (event.newCardVersion !== event.previousCardVersion + 1) context.addIssue({ code: 'custom', path: ['newCardVersion'], message: 'Versión de evento incoherente.' })
   if (event.responseRetention === 'metadata-only' && event.attemptText !== undefined) context.addIssue({ code: 'custom', path: ['attemptText'], message: 'No conservar respuestas sin consentimiento.' })

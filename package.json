@@ -13,6 +13,7 @@
     "test": "node --test tests/study.test.js tests/unit/*.test.js",
     "test:rules": "node --test tests/integration/*.test.js",
     "test:e2e": "node tests/e2e.mjs",
+    "test:e2e:cognitive": "node tests/e2e-cognitive.mjs",
     "icarus:simulate": "node scripts/icarus-migrate.mjs simulate --input tests/fixtures/legacy-v1.json --output .icarus-simulations/result.json"
   },
   "dependencies": {

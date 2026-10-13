@@ -9,7 +9,13 @@
     "./legacy": "./src/legacy.js",
     "./segmentation": "./src/segmentation.js",
     "./migration": "./src/migration.js",
-    "./flags": "./src/flags.js"
+    "./flags": "./src/flags.js",
+    "./encoding": "./src/encoding.js",
+    "./review": "./src/review.js",
+    "./scheduler": "./src/scheduler.js"
   },
-  "dependencies": { "zod": "4.6.7" }
+  "dependencies": {
+    "ts-fsrs": "5.4.2",
+    "zod": "4.6.7"
+  }
 }

@@ -7,6 +7,18 @@
     { "collectionGroup": "microStations", "queryScope": "COLLECTION", "fields": [
       { "fieldPath": "macroId", "order": "ASCENDING" },
       { "fieldPath": "ordinal", "order": "ASCENDING" }
+    ] },
+    { "collectionGroup": "units", "queryScope": "COLLECTION", "fields": [
+      { "fieldPath": "sourceId", "order": "ASCENDING" },
+      { "fieldPath": "ordinal", "order": "ASCENDING" }
+    ] },
+    { "collectionGroup": "cards", "queryScope": "COLLECTION", "fields": [
+      { "fieldPath": "unitId", "order": "ASCENDING" },
+      { "fieldPath": "target", "order": "ASCENDING" }
+    ] },
+    { "collectionGroup": "cards", "queryScope": "COLLECTION", "fields": [
+      { "fieldPath": "lifecycle", "order": "ASCENDING" },
+      { "fieldPath": "dueAt", "order": "ASCENDING" }
     ] }
   ],
   "fieldOverrides": []

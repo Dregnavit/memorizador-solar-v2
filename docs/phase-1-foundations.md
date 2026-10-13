@@ -2,7 +2,7 @@
 
 ## Activación
 
-El modo clásico sigue siendo la experiencia predeterminada. `VITE_ICARUS_PREPARATION_ENABLED=true` muestra la preparación; `VITE_ICARUS_SPACES_ENABLED=true` muestra los palacios. Reinicia Vite tras cambiar variables; en Vercel hay que recompilar. Antes de activar espacios en producción, publica tanto `firestore.rules` como `firestore.indexes.json` y espera a que los índices estén listos. Ambas funciones trabajan con la cuenta autenticada.
+El modo clásico sigue siendo la experiencia predeterminada. `VITE_ICARUS_PREPARATION_ENABLED=true` muestra la preparación; `VITE_ICARUS_SPACES_ENABLED=true` muestra los palacios; `VITE_ICARUS_LEARNING_ENABLED=true` habilita la biblioteca, Taller y repaso. Reinicia Vite tras cambiar variables; en Vercel hay que recompilar. Antes de activar espacios o aprendizaje en producción, publica tanto `firestore.rules` como `firestore.indexes.json` y espera a que los índices estén listos. Trabajan con la cuenta autenticada.
 
 La preparación es de solo lectura en Firebase. Exporta el inventario propio y su progreso, conserva campos adicionales y tipos nativos mediante un formato etiquetado y verifica manifiesto y SHA-256. El hash detecta alteración accidental o diferencias respecto del manifiesto; no es una firma que pruebe quién creó un archivo. Un archivo de otra cuenta o con hashes incoherentes se rechaza.
 
@@ -18,11 +18,11 @@ La CLI `scripts/icarus-migrate.mjs` incluye `backup`, `verify`, `plan`, `restore
 
 En «Palacios Ícaro», crea un palacio y selecciónalo; crea una macro-estación y selecciónala; añade sus loci con anclaje, orden y señales sensoriales opcionales. El orden admite empates resueltos por ID. Los nombres y anclajes se mantienen estables; la edición y reasignación se añadirán con protocolos propios más adelante.
 
-Archivar conserva todos los documentos y sus IDs. Archiva primero los hijos activos; «Mostrar archivados» permite restaurar las estaciones empezando por sus padres. Un locus ocupado no se libera automáticamente. Las reglas reservan ocupación y publicación de encoding para el Taller futuro, por lo que los loci nuevos permanecen libres.
+Archivar conserva todos los documentos y sus IDs. Archiva primero los hijos activos; «Mostrar archivados» permite restaurar las estaciones empezando por sus padres. Un locus ocupado no se libera automáticamente. Los loci nuevos permanecen libres hasta la publicación atómica del Taller.
 
 Se consultan 40 estaciones por página, con navegación anterior/siguiente y suscripciones desmontables. El filtro de archivados se aplica a la página visible; sigue navegando si una página no tiene estaciones activas. Las transacciones requieren conexión y muestran errores de versión o permisos sin declarar éxito.
 
-Colecciones usadas: `users/{uid}/palaces`, `macroStations`, `microStations`, con historial `revisions/vN`. Los contratos también definen fuentes, revisiones, unidades, conceptos, aristas, encodings, tarjetas y eventos, pero todavía no hay un flujo de publicación/estudio Ícaro habilitado.
+Colecciones espaciales: `users/{uid}/palaces`, `macroStations`, `microStations`, con historial `revisions/vN`. La [guía cognitiva](phase-1-cognitive.md) describe las colecciones y flujos ya implementados de fuentes, unidades, conceptos, aristas, encodings, tarjetas y eventos.
 
 ## Verificación
 
@@ -32,8 +32,8 @@ Para E2E inicia Auth (9099), Firestore (8080) y Vite con un proyecto `demo-memor
 
 La suite comprueba fragmentación y programación clásicas, auth, temas, aislamiento, respaldo y rechazo de archivos ajenos/alterados, simulación, creación espacial, archivado/restauración, persistencia, paginación y móvil. Las pruebas de reglas ejercitan contención, idempotencia, historiales exactos, huérfanos, cruces entre palacios, contador falseado, ocupación no autorizada y rechazo de acceso ajeno.
 
-El emulador no demuestra que los índices compuestos estén construidos en producción ni publica las reglas. Permanecen los avisos de la fuente original ausente y del tamaño del paquete principal; la compilación utiliza las alternativas disponibles.
+El emulador no demuestra que los índices compuestos estén construidos en producción ni publica las reglas. La fuente y el logo originales se integraron desde GitHub. Permanece un aviso de tamaño del paquete principal.
 
-## Siguiente hito
+## Continuación
 
-Biblioteca versionada y Taller de ocho pasos: revisión de fuente, objetivo, concepto, fundamentación/vínculo, espacio, escena, discriminación y recuperación inicial aprobada. Después, recuperación escalonada y FSRS independiente para concepto, explicación y recitación. Esta entrega aún no cumple los criterios completos del MVP cognitivo del Blueprint.
+La biblioteca versionada, el Taller de ocho pasos y el repaso escalonado con FSRS independiente ya están implementados y se describen en la [guía del MVP cognitivo](phase-1-cognitive.md). La migración real, los atrios y las extensiones avanzadas continúan pendientes.

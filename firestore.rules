@@ -15,7 +15,7 @@ service cloud.firestore {
       return /databases/$(database)/documents/users/$(uid)/$(kind)/$(id);
     }
     function nonblank(value, limit) {
-      return value is string && value.size() > 0 && value.size() <= limit
+      return value is string && value.size() <= limit
         && value.matches('[\\s\\S]*\\S[\\s\\S]*');
     }
     function spaceBase(data, uid, id) {
@@ -91,6 +91,94 @@ service cloud.firestore {
             && after[lifecycleField] == (mutation.action == 'archive' ? 'archived' : (kind == 'microStations' ? 'free' : 'active'))
             && request.resource.data[counter] == resource.data[counter] + (mutation.action == 'archive' ? -1 : 1)));
     }
+    function learningBase(d, uid, id) {
+      return d.id == id && d.userId == uid && d.schemaVersion == 1
+        && d.version is int && d.version >= 1 && d.version <= 1000000000 && d.createdAt is timestamp;
+    }
+    function learningNew(d, uid, id) { return learningBase(d, uid, id) && d.version == 1 && d.createdAt == request.time; }
+    function digest(value) { return value is string && value.matches('sha256:[0-9a-f]{64}'); }
+    function targets(mode) { return mode == 'literal' ? ['verbatim'] : mode == 'dual' ? ['concept', 'explanation', 'verbatim'] : ['concept', 'explanation']; }
+    function unitShape(d, uid, id) {
+      return d.keys().hasOnly(['id', 'userId', 'schemaVersion', 'version', 'createdAt', 'sourceId', 'sourceRevisionId', 'unitRevision', 'ordinal', 'text', 'status', 'startOffset', 'endOffset', 'traceStatus', 'targetMode', 'targets', 'primaryConceptId', 'legacyRef', 'activeEncodingId'])
+        && nonblank(d.text, 60000) && ordinal(d.ordinal) && d.unitRevision == 1 && d.traceStatus == 'resolved'
+        && d.startOffset is int && d.endOffset is int && d.startOffset >= 0 && d.endOffset > d.startOffset && d.endOffset <= 120000;
+    }
+    function validDraft(d, uid, id) {
+      return learningBase(d, uid, id) && d.id == d.unitId && d.updatedAt == request.time
+        && d.keys().hasOnly(['id', 'userId', 'schemaVersion', 'version', 'createdAt', 'updatedAt', 'unitId', 'sourceRevisionId', 'status', 'payload', 'step', 'publishedEncodingId'])
+        && d.step is int && d.step >= 0 && d.step <= 7 && d.payload is map
+        && d.payload.keys().hasOnly(['sourceReviewed', 'mode', 'conceptKind', 'unknownTerms', 'proposition', 'terms', 'premises', 'conclusion', 'why', 'quoteNecessary', 'needsResearch', 'foundational', 'foundation', 'linkedConceptId', 'edgeType', 'linkExplanation', 'palaceId', 'macroId', 'locusId', 'agent', 'action', 'symbol', 'distinctiveCue', 'sensoryDetails', 'mapping', 'prompt', 'distinction', 'mentalRehearsal', 'sceneDistinguished', 'entranceAttempted', 'entrancePassed', 'meaningConfirmed']);
+    }
+    function workshopGate(p) {
+      return p.sourceReviewed == true && p.mode in ['conceptual', 'literal', 'dual'] && p.needsResearch == false
+        && nonblank(p.proposition, 4000) && p.conceptKind in ['argument', 'definition', 'explanation', 'interpretation', 'sequence']
+        && (p.conceptKind != 'argument' || (nonblank(p.premises, 4000) && nonblank(p.conclusion, 4000) && nonblank(p.why, 4000)))
+        && (p.foundational == true ? nonblank(p.foundation, 4000) : (p.linkedConceptId is string && nonblank(p.linkExplanation, 4000)))
+        && nonblank(p.agent, 4000) && nonblank(p.action, 4000) && nonblank(p.symbol, 4000) && nonblank(p.distinctiveCue, 4000) && nonblank(p.mapping, 4000)
+        && p.mentalRehearsal == true && nonblank(p.prompt, 4000) && nonblank(p.distinction, 4000) && p.sceneDistinguished == true
+        && p.entranceAttempted == true && p.entrancePassed == true && p.meaningConfirmed == true;
+    }
+    function gateMatches(g, p) {
+      return g == {'sourceReviewed': true, 'objectiveSelected': true, 'foundational': p.foundational, 'foundationJustification': p.foundation, 'linkedConceptId': p.foundational ? null : p.linkedConceptId, 'sceneDistinguished': true, 'initialRecallAttempted': true, 'entranceExamPassed': true, 'userConfirmedMeaning': true};
+    }
+    function initialCardPresent(uid, encodingId, target) {
+      return getAfter(spacePath(uid, 'cards', encodingId + '_' + target)).data.encodingId == encodingId;
+    }
+    function publishableEncoding(d, uid, id) {
+      let draft = get(spacePath(uid, 'encodingDrafts', d.draftId)).data;
+      let p = draft.payload;
+      let unit = getAfter(spacePath(uid, 'units', d.unitId)).data;
+      let locus = getAfter(spacePath(uid, 'microStations', d.locusId)).data;
+      let concept = getAfter(spacePath(uid, 'concepts', d.conceptId)).data;
+      return learningNew(d, uid, id) && d.keys().hasOnly(['id', 'userId', 'schemaVersion', 'version', 'createdAt', 'unitId', 'unitRevision', 'sourceRevisionId', 'conceptId', 'conceptVersion', 'locusId', 'palaceId', 'macroId', 'scene', 'retrievalPrompt', 'qualityGate', 'status', 'requestHash', 'draftId', 'targets', 'edgeId'])
+        && digest(d.requestHash) && d.status == 'active' && d.id == d.unitId + '_e1' && d.draftId == d.unitId
+        && draft.status == 'draft' && draft.unitId == d.unitId && workshopGate(p) && gateMatches(d.qualityGate, p)
+        && getAfter(spacePath(uid, 'encodingDrafts', d.draftId)).data.publishedEncodingId == id
+        && unit.status == 'ready' && unit.activeEncodingId == id && unit.sourceRevisionId == d.sourceRevisionId && unit.unitRevision == d.unitRevision
+        && (p.proposition != unit.text || p.quoteNecessary == true)
+        && d.targets == targets(p.mode) && unit.targetMode == p.mode
+        && concept.id == id + '_concept' && concept.canonicalProposition == p.proposition && concept.kind == p.conceptKind && d.conceptVersion == 1
+        && locus.state == 'occupied' && locus.activeEncodingId == id && locus.macroId == d.macroId && locus.palaceId == d.palaceId && d.locusId == p.locusId && d.macroId == p.macroId && d.palaceId == p.palaceId
+        // A free locus is already counted as active. Parent archival requires
+        // zero active children, so these invariant-preserving rules imply an active route.
+        && d.scene.keys().hasOnly(['agent', 'action', 'symbol', 'distinctiveCue', 'sensoryDetails', 'conceptMapping'])
+        && d.scene.agent == p.agent && d.scene.action == p.action && d.scene.symbol == p.symbol && d.scene.distinctiveCue == p.distinctiveCue && d.scene.conceptMapping == p.mapping && d.scene.sensoryDetails is list
+        && d.retrievalPrompt == p.prompt
+        && (p.foundational ? d.edgeId == null : (d.edgeId == id + '_edge' && getAfter(spacePath(uid, 'conceptEdges', d.edgeId)).data.toConceptId == p.linkedConceptId))
+        && (!d.targets.hasAny(['concept']) || initialCardPresent(uid, id, 'concept'))
+        && (!d.targets.hasAny(['explanation']) || initialCardPresent(uid, id, 'explanation'))
+        && (!d.targets.hasAny(['verbatim']) || initialCardPresent(uid, id, 'verbatim'));
+    }
+    function schedulerShape(s) {
+      return s.keys().hasOnly(['algorithm', 'packageVersion', 'codecVersion', 'state', 'snapshot']) && s.algorithm == 'fsrs' && s.packageVersion == '5.4.2' && s.codecVersion == 2
+        && s.state in ['new', 'learning', 'review', 'relearning'] && nonblank(s.snapshot, 20000);
+    }
+    function cardShape(d, uid, id) {
+      return d.keys().hasOnly(['id', 'userId', 'schemaVersion', 'version', 'createdAt', 'unitId', 'encodingId', 'encodingVersion', 'target', 'lifecycle', 'scheduler', 'dueAt', 'lastReviewedAt', 'lastEventId'])
+        && d.target in ['concept', 'explanation', 'verbatim'] && d.id == d.encodingId + '_' + d.target && d.encodingVersion == 1 && d.lifecycle == 'active'
+        && d.dueAt is timestamp && schedulerShape(d.scheduler);
+    }
+    function eventAllowsRating(d) {
+      let stage = d.stageCompletion;
+      return d.rating in ['again', 'hard', 'good', 'easy'] && d.highestHint is int && d.highestHint >= 0 && d.highestHint <= 3
+        && d.attemptedBeforeReveal is bool && d.successfulRecall is bool && d.noCriticalError is bool
+        && stage.keys().hasOnly(['scene', 'meaning', 'structure', 'verbatim']) && stage.scene is bool && stage.meaning is bool && stage.structure is bool && stage.verbatim is bool
+        && (d.rating == 'again' || (d.attemptedBeforeReveal && d.successfulRecall && d.noCriticalError
+          && (d.target == 'verbatim' ? stage.verbatim : stage.scene && stage.meaning && stage.structure)
+          && d.highestHint < 3 && (d.highestHint != 2 || d.rating == 'hard') && (d.highestHint != 1 || d.rating in ['hard', 'good'])));
+    }
+    function validReviewEvent(d, uid, id) {
+      let before = get(spacePath(uid, 'cards', d.cardId)).data;
+      let after = getAfter(spacePath(uid, 'cards', d.cardId)).data;
+      return learningNew(d, uid, id) && d.keys().hasOnly(['id', 'userId', 'schemaVersion', 'version', 'createdAt', 'cardId', 'target', 'clientRequestId', 'requestHash', 'rating', 'highestHint', 'attemptedBeforeReveal', 'successfulRecall', 'noCriticalError', 'stageCompletion', 'previousCardVersion', 'newCardVersion', 'reviewedAt', 'dueBefore', 'dueAfter', 'responseRetention', 'attemptText', 'schedulerBefore', 'schedulerAfter'])
+        && id == d.clientRequestId && digest(d.requestHash) && eventAllowsRating(d)
+        && d.target == before.target && before.lifecycle == 'active'
+        && d.previousCardVersion == before.version && d.newCardVersion == before.version + 1 && after.version == d.newCardVersion && after.lastEventId == id
+        && d.dueBefore == before.dueAt && d.dueAfter == after.dueAt && d.schedulerBefore == before.scheduler && d.schedulerAfter == after.scheduler
+        && d.reviewedAt == after.lastReviewedAt && d.reviewedAt >= request.time - duration.value(5, 'm') && d.reviewedAt <= request.time + duration.value(5, 'm')
+        && d.dueAfter >= d.reviewedAt && d.dueAfter <= d.reviewedAt + duration.value(36501, 'd')
+        && ((d.responseRetention == 'metadata-only' && !d.keys().hasAny(['attemptText'])) || (d.responseRetention == 'opt-in' && nonblank(d.attemptText, 20000)));
+    }
     match /texts/{textId} {
       allow read: if signedIn() && resource.data.userId == request.auth.uid;
       allow delete: if signedIn() && resource.data.userId == request.auth.uid && legacyWritesAllowed(request.auth.uid);
@@ -122,6 +210,80 @@ service cloud.firestore {
     match /users/{uid} {
       allow get: if owner(uid);
       allow list, write: if false;
+      match /sources/{id} {
+        allow create: if owner(uid) && learningNew(request.resource.data, uid, id)
+          && request.resource.data.keys().hasOnly(['id', 'userId', 'schemaVersion', 'version', 'createdAt', 'title', 'kind', 'lifecycle', 'currentRevisionId', 'provenance', 'creationRequestHash'])
+          && nonblank(request.resource.data.title, 120) && request.resource.data.kind in ['prose', 'poetry'] && request.resource.data.lifecycle == 'active'
+          && request.resource.data.provenance == {'type': 'user'} && digest(request.resource.data.creationRequestHash) && request.resource.data.currentRevisionId == 'r1'
+          && getAfter(/databases/$(database)/documents/users/$(uid)/sources/$(id)/revisions/r1).data.sourceId == id;
+        match /revisions/{revisionId} {
+          allow create: if owner(uid) && learningNew(request.resource.data, uid, revisionId) && revisionId == 'r1' && !exists(spacePath(uid, 'sources', id))
+            && request.resource.data.keys().hasOnly(['id', 'userId', 'schemaVersion', 'version', 'createdAt', 'sourceId', 'revisionNumber', 'originalText', 'contentHash', 'hashAlgorithm', 'language', 'segmentationMode', 'provenance'])
+            && request.resource.data.sourceId == id && request.resource.data.revisionNumber == 1 && nonblank(request.resource.data.originalText, 60000) && digest(request.resource.data.contentHash)
+            && request.resource.data.hashAlgorithm == 'sha256-canonical-json-v1' && request.resource.data.language == 'und' && request.resource.data.segmentationMode in ['sentences', 'verses', 'stanzas', 'manual-reviewed']
+            && request.resource.data.provenance == {'type': 'user'} && getAfter(spacePath(uid, 'sources', id)).data.currentRevisionId == revisionId;
+        }
+      }
+      match /units/{id} {
+        allow create: if owner(uid) && learningNew(request.resource.data, uid, id) && unitShape(request.resource.data, uid, id)
+          && request.resource.data.status == 'needs_concept' && request.resource.data.targetMode == null && request.resource.data.targets == []
+          && request.resource.data.primaryConceptId == null && request.resource.data.activeEncodingId == null && request.resource.data.legacyRef == null
+          && get(spacePath(uid, 'sources', request.resource.data.sourceId)).data.lifecycle == 'active'
+          && get(spacePath(uid, 'sources', request.resource.data.sourceId)).data.currentRevisionId == request.resource.data.sourceRevisionId
+          && get(/databases/$(database)/documents/users/$(uid)/sources/$(request.resource.data.sourceId)/revisions/$(request.resource.data.sourceRevisionId)).data.sourceId == request.resource.data.sourceId
+          && getAfter(/databases/$(database)/documents/users/$(uid)/units/$(id)/revisions/v1).data == request.resource.data;
+        allow update: if owner(uid) && resource.data.userId == uid && hasSpaceHistory(uid, 'units', id)
+          && resource.data.status in ['needs_concept', 'needs_encoding'] && resource.data.get('activeEncodingId', null) == null && request.resource.data.status == 'ready'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['version', 'status', 'primaryConceptId', 'targetMode', 'targets', 'activeEncodingId'])
+          && getAfter(spacePath(uid, 'encodings', request.resource.data.activeEncodingId)).data.unitId == id
+          && getAfter(spacePath(uid, 'encodings', request.resource.data.activeEncodingId)).data.conceptId == request.resource.data.primaryConceptId
+          && getAfter(spacePath(uid, 'encodings', request.resource.data.activeEncodingId)).data.targets == request.resource.data.targets;
+      }
+      match /encodingDrafts/{id} {
+        allow create: if owner(uid) && learningNew(request.resource.data, uid, id) && validDraft(request.resource.data, uid, id)
+          && request.resource.data.status == 'draft' && request.resource.data.publishedEncodingId == null
+          && get(spacePath(uid, 'units', id)).data.status in ['needs_concept', 'needs_encoding'] && get(spacePath(uid, 'units', id)).data.sourceRevisionId == request.resource.data.sourceRevisionId;
+        allow update: if owner(uid) && validDraft(request.resource.data, uid, id) && request.resource.data.version == resource.data.version + 1 && resource.data.status == 'draft'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['version', 'updatedAt', 'payload', 'step', 'status', 'publishedEncodingId'])
+          && ((request.resource.data.status == 'draft' && request.resource.data.publishedEncodingId == null && get(spacePath(uid, 'units', id)).data.status in ['needs_concept', 'needs_encoding'])
+            || (request.resource.data.status == 'published' && request.resource.data.payload == resource.data.payload && request.resource.data.step == resource.data.step
+              && getAfter(spacePath(uid, 'encodings', request.resource.data.publishedEncodingId)).data.draftId == id && getAfter(spacePath(uid, 'units', id)).data.activeEncodingId == request.resource.data.publishedEncodingId));
+      }
+      match /concepts/{id} {
+        allow create: if owner(uid) && learningNew(request.resource.data, uid, id)
+          && request.resource.data.keys().hasOnly(['id', 'userId', 'schemaVersion', 'version', 'createdAt', 'canonicalProposition', 'kind', 'terms', 'premises', 'conclusion', 'whyItFollows', 'status', 'encodingId'])
+          && id == request.resource.data.encodingId + '_concept' && request.resource.data.status == 'reviewed'
+          && request.resource.data.terms is list && request.resource.data.premises is list && request.resource.data.conclusion is string && request.resource.data.whyItFollows is string
+          && (request.resource.data.kind != 'argument' || (request.resource.data.premises.size() > 0 && nonblank(request.resource.data.conclusion, 4000) && nonblank(request.resource.data.whyItFollows, 4000)))
+          && getAfter(spacePath(uid, 'encodings', request.resource.data.encodingId)).data.conceptId == id;
+      }
+      match /conceptEdges/{id} {
+        allow create: if owner(uid) && learningNew(request.resource.data, uid, id)
+          && request.resource.data.keys().hasOnly(['id', 'userId', 'schemaVersion', 'version', 'createdAt', 'encodingId', 'fromConceptId', 'toConceptId', 'type', 'explanation', 'evidenceUnitIds'])
+          && id == request.resource.data.encodingId + '_edge' && request.resource.data.fromConceptId != request.resource.data.toConceptId && nonblank(request.resource.data.explanation, 4000)
+          && request.resource.data.type in ['causes', 'implies', 'contrasts', 'defines', 'example_of', 'depends_on', 'argument_order']
+          && get(spacePath(uid, 'concepts', request.resource.data.toConceptId)).data.status == 'reviewed'
+          && getAfter(spacePath(uid, 'encodings', request.resource.data.encodingId)).data.edgeId == id
+          && getAfter(spacePath(uid, 'encodings', request.resource.data.encodingId)).data.conceptId == request.resource.data.fromConceptId
+          && request.resource.data.evidenceUnitIds == [getAfter(spacePath(uid, 'encodings', request.resource.data.encodingId)).data.unitId];
+      }
+      match /encodings/{id} { allow create: if owner(uid) && publishableEncoding(request.resource.data, uid, id); }
+      match /cards/{id} {
+        allow create: if owner(uid) && learningNew(request.resource.data, uid, id) && cardShape(request.resource.data, uid, id)
+          && request.resource.data.scheduler.state == 'new' && request.resource.data.lastReviewedAt == null && request.resource.data.lastEventId == null
+          && request.resource.data.dueAt >= request.time - duration.value(5, 'm') && request.resource.data.dueAt <= request.time + duration.value(5, 'm')
+          && getAfter(spacePath(uid, 'encodings', request.resource.data.encodingId)).data.createdAt == request.time
+          && getAfter(spacePath(uid, 'encodings', request.resource.data.encodingId)).data.unitId == request.resource.data.unitId
+          && getAfter(spacePath(uid, 'encodings', request.resource.data.encodingId)).data.targets.hasAny([request.resource.data.target]);
+        allow update: if owner(uid) && resource.data.userId == uid && schedulerShape(request.resource.data.scheduler) && resource.data.lifecycle == 'active'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['version', 'scheduler', 'dueAt', 'lastReviewedAt', 'lastEventId'])
+          && request.resource.data.version == resource.data.version + 1 && request.resource.data.lastEventId != resource.data.lastEventId
+          && !exists(spacePath(uid, 'reviewEvents', request.resource.data.lastEventId))
+          && getAfter(spacePath(uid, 'reviewEvents', request.resource.data.lastEventId)).data.cardId == id
+          && getAfter(spacePath(uid, 'reviewEvents', request.resource.data.lastEventId)).data.newCardVersion == request.resource.data.version
+          && get(spacePath(uid, 'encodings', resource.data.encodingId)).data.status == 'active';
+      }
+      match /reviewEvents/{id} { allow create: if owner(uid) && validReviewEvent(request.resource.data, uid, id); }
       match /palaces/{id} {
         allow create: if owner(uid) && palaceShape(request.resource.data, uid, id) && newSpace(request.resource.data, uid, id)
           && request.resource.data.lifecycle == 'active' && request.resource.data.activeMacroCount == 0 && request.resource.data.lastMutation == null;
@@ -148,11 +310,16 @@ service cloud.firestore {
           && get(spacePath(uid, 'palaces', request.resource.data.palaceId)).data.lifecycle == 'active'
           && get(spacePath(uid, 'macroStations', request.resource.data.macroId)).data.palaceId == request.resource.data.palaceId
           && parentTransition(uid, 'macroStations', request.resource.data.macroId, 'activeLocusCount', id, 'create');
-        allow update: if owner(uid) && locusShape(request.resource.data, uid, id) && hasSpaceHistory(uid, 'microStations', id)
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['version', 'state'])
+        allow update: if owner(uid) && resource.data.userId == uid && hasSpaceHistory(uid, 'microStations', id)
+          && ((request.resource.data.diff(resource.data).affectedKeys().hasOnly(['version', 'state'])
           && resource.data.activeEncodingId == null && request.resource.data.activeEncodingId == null
           && ((resource.data.state == 'free' && request.resource.data.state == 'archived') || (resource.data.state == 'archived' && request.resource.data.state == 'free'))
-          && parentTransition(uid, 'macroStations', resource.data.macroId, 'activeLocusCount', id, request.resource.data.state == 'archived' ? 'archive' : 'restore');
+          && parentTransition(uid, 'macroStations', resource.data.macroId, 'activeLocusCount', id, request.resource.data.state == 'archived' ? 'archive' : 'restore'))
+            || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['version', 'state', 'activeEncodingId', 'usageCountLifetime'])
+              && resource.data.state == 'free' && resource.data.activeEncodingId == null && request.resource.data.state == 'occupied'
+              && request.resource.data.usageCountLifetime == resource.data.usageCountLifetime + 1
+              && getAfter(spacePath(uid, 'encodings', request.resource.data.activeEncodingId)).data.locusId == id
+              && getAfter(spacePath(uid, 'encodings', request.resource.data.activeEncodingId)).data.createdAt == request.time));
       }
       match /{collectionId}/{documentId} {
         allow read: if owner(uid) && collectionId in [
@@ -164,10 +331,12 @@ service cloud.firestore {
         allow write: if false;
         match /revisions/{revisionId} {
           allow read: if owner(uid) && collectionId in ['sources', 'units', 'concepts', 'encodings', 'palaces', 'macroStations', 'microStations'];
-          allow create: if owner(uid) && collectionId in ['palaces', 'macroStations', 'microStations']
+          allow create: if owner(uid) && collectionId in ['palaces', 'macroStations', 'microStations', 'units']
             && revisionId == 'v' + string(get(spacePath(uid, collectionId, documentId)).data.version)
             && request.resource.data == get(spacePath(uid, collectionId, documentId)).data
             && getAfter(spacePath(uid, collectionId, documentId)).data.version == request.resource.data.version + 1;
+          allow create: if owner(uid) && collectionId == 'units' && revisionId == 'v1' && !exists(spacePath(uid, 'units', documentId))
+            && request.resource.data == getAfter(spacePath(uid, 'units', documentId)).data && request.resource.data.version == 1;
           allow update, delete: if false;
         }
       }

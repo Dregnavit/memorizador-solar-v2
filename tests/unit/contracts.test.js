@@ -5,10 +5,11 @@ import { conceptSchema, locusSchema, passesEncodingGate, profileSchema, unitSche
 import { locateLegacyFragments, proposeSegments, assertExactSourceSlice } from '@icarus/domain/segmentation'
 import { toTimestamp } from '@icarus/domain/codec'
 
-test('bandera: default clásico y activación de estudio bloqueada durante fundamentos', () => {
+test('bandera: default clásico; el estudio requiere activación explícita de la nueva interfaz', () => {
   assert.equal(DEFAULT_PROFILE.icarusEnabled, false)
   assert.equal(getIcarusCapabilities().preparationAvailable, false)
   assert.equal(getIcarusCapabilities({ icarusEnabled: true }, true).studyAvailable, false)
+  assert.equal(getIcarusCapabilities({}, false, true).studyAvailable, true)
   assert.equal(getIcarusCapabilities({}, true).productionMigrationAvailable, false)
   assert.equal(profileSchema.safeParse({ ...DEFAULT_PROFILE, unknown: true }).success, false)
 })

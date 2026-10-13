@@ -4,6 +4,7 @@ import { errorMessage } from '../../lib.js'
 import { MigrationError } from '@icarus/domain/migration'
 import { createSpace, newSpaceIntent, setSpaceArchived } from '../../data/firestore/spacesRepository.js'
 import { useSpaces } from '../../data/hooks/useSpaces.js'
+import ReadNotice from '../../components/ReadNotice.jsx'
 
 const LABELS = { palace: 'palacio', macro: 'macro-estación', locus: 'locus' }
 const STATES = { free: 'Libre', reserved: 'Reservado', occupied: 'Ocupado', cooling: 'En descanso', archived: 'Archivado' }
@@ -69,9 +70,8 @@ function SpaceColumn({ kind, heading, description, data, selectedId, onSelect, o
     <section className="card space-column" aria-label={heading}>
       <div className="space-column-heading"><h3>{heading}</h3><button type="button" className="button button-secondary" disabled={!canCreate || busy} onClick={onCreate}>+ {LABELS[kind]}</button></div>
       <p className="muted">{description}</p>
-      {data.loading && <p role="status">Cargando estaciones…</p>}
-      {data.error && <div className="notice notice-error" role="alert"><p>{data.error}</p><button type="button" className="button button-secondary" onClick={data.retry}>Reintentar lectura</button></div>}
-      {!data.loading && !data.error && !items.length && <p className="space-empty">{canCreate ? 'Este espacio todavía está por construir.' : 'Selecciona una estación superior para recorrer sus lugares.'}</p>}
+      <ReadNotice data={data} loadingText="Cargando estaciones…" />
+      {(data.status === 'ready' || data.status === 'idle') && !items.length && <p className="space-empty">{canCreate ? 'Este espacio todavía está por construir.' : 'Selecciona una estación superior para recorrer sus lugares.'}</p>}
       <ul className="space-list">{items.map((item) => (
         <li className={`space-item ${item.id === selectedId ? 'space-selected' : ''}`} key={item.id}>
           <button className="space-select" type="button" aria-pressed={item.id === selectedId} onClick={() => onSelect(item.id)} aria-label={`Seleccionar ${LABELS[kind]} ${titleOf(item)}`}><strong>{titleOf(item)}</strong><span>{cueOf(item)}</span></button>
@@ -81,7 +81,7 @@ function SpaceColumn({ kind, heading, description, data, selectedId, onSelect, o
           {hasDependents(kind, item) && <p className="field-help">{kind === 'locus' ? 'Su codificación activa conserva este anclaje.' : 'Archiva primero sus estaciones activas.'}</p>}
         </li>
       ))}</ul>
-      {(data.hasMore || data.canGoBack) && <div className="space-pagination"><button className="button button-secondary" type="button" disabled={!data.canGoBack || data.loading || busy} onClick={data.previousPage}>Anterior</button><span>Página {data.pageNumber}</span><button className="button button-secondary" type="button" disabled={!data.hasMore || data.loading || busy} onClick={data.nextPage}>Siguiente</button></div>}
+      {(data.hasMore || data.canGoBack) && <div className="space-pagination"><button className="button button-secondary" type="button" disabled={!data.canGoBack || data.loading || busy} onClick={data.previousPage}>Anterior</button><span>Página {data.pageNumber}</span><button className="button button-secondary" type="button" disabled={!data.hasMore || data.status !== 'ready' || busy} onClick={data.nextPage}>Siguiente</button></div>}
     </section>
   )
 }
@@ -104,11 +104,11 @@ export default function PalaceExplorer({ user, onBack }) {
   const macro = macros.items.find((item) => item.id === macroId)
   useEffect(() => { active.current = true; return () => { active.current = false } }, [])
   useEffect(() => {
-    if (!palaces.loading && (!palace || (!showArchived && isArchived(palace)))) { setPalaceId(null); setMacroId(null); setLocusId(null) }
-  }, [palaces.loading, palace, showArchived])
+    if (palaces.status === 'ready' && (!palace || (!showArchived && isArchived(palace)))) { setPalaceId(null); setMacroId(null); setLocusId(null) }
+  }, [palaces.status, palace, showArchived])
   useEffect(() => {
-    if (!macros.loading && (!macro || (!showArchived && isArchived(macro)))) { setMacroId(null); setLocusId(null) }
-  }, [macros.loading, macro, showArchived])
+    if (macros.status === 'ready' && (!macro || (!showArchived && isArchived(macro)))) { setMacroId(null); setLocusId(null) }
+  }, [macros.status, macro, showArchived])
 
   async function archive(kind, item) {
     if (busyRef.current) return

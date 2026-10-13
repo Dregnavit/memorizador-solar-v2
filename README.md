@@ -4,6 +4,8 @@ Aplicación web de repetición espaciada para prosa y poesía: React 18.3.1, Vit
 
 La evolución al Método Ícaro incorpora contratos versionados, preparación segura del legado, palacios/macros/loci, Taller obligatorio y repaso escalonado con FSRS por objetivo. Funciona con Firebase Spark, sin Cloud Functions; el estudio clásico permanece disponible. Consulta el [diagnóstico y plan](docs/architecture/icarus-roadmap.md), la [decisión Spark](docs/architecture/ADR-spark.md), la [guía de fundamentos](docs/phase-1-foundations.md) y la [guía del Taller y repaso](docs/phase-1-cognitive.md).
 
+Las lecturas privadas distinguen errores, caché y respuestas confirmadas: una consulta fallida no muestra cero pendientes. Consulta el [diagnóstico de Firestore y pasos de despliegue](docs/firestore-read-diagnostics.md). `npm run check:firestore` valida consultas e índices del repositorio y forma parte del build; los índices reales deben comprobarse y publicarse por separado en Firebase.
+
 ## Desarrollo
 
 Requiere Node.js 22.12 o superior. Ejecuta `npm ci` y `npm run dev`. `npm run build` genera `dist`, `npm run preview` permite comprobar esa compilación, `npm run lint` revisa el código y `npm test` ejecuta las pruebas del algoritmo.
@@ -39,3 +41,5 @@ Usa un proyecto demo independiente, `demo-memorizador-solar`. Con Java 21 instal
 `tests/e2e.mjs` comprueba en Chromium registro, login, temas, fragmentación, tarjetas, atajos, las cuatro calificaciones, persistencia, pendientes, aislamiento entre cuentas, eliminación del progreso y layout móvil. Playwright está declarado; requiere Chromium y la aplicación demo en 127.0.0.1:5180 (o E2E_BASE_URL local), con emuladores en 9099 y 8080. Activa los dos flags Ícaro y ejecuta `E2E_REQUIRE_PREPARATION=true E2E_REQUIRE_SPACES=true npm run test:e2e` para incluir fundamentos y espacios. `npm run test:rules` comprueba las reglas y transacciones en el emulador Firestore; ejecútalo antes, nunca simultáneamente con E2E. Los tests no acceden al proyecto Firebase real.
 
 Activa también `VITE_ICARUS_LEARNING_ENABLED=true` en Vite demo y ejecuta `E2E_BASE_URL=http://127.0.0.1:5181 npm run test:e2e:cognitive` (ajusta el puerto). Comprueba el Taller completo/reanudable, examen, prosa y poesía dual, intentos antes de revelar, pistas y topes, desconexión/reintento sin duplicados, agendas independientes, privacidad y móvil.
+
+`E2E_BASE_URL=http://127.0.0.1:5181 npm run test:e2e:firestore` comprueba errores reales de permisos en el emulador, diagnóstico, reintentos, jerarquías de distintos palacios y ausencia de falso cero ante error o caché. Restaura las reglas al finalizar; no lo ejecutes simultáneamente con los otros E2E o pruebas de reglas.

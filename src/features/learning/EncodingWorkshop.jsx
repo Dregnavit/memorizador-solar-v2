@@ -6,13 +6,14 @@ import { useSpaces } from '../../data/hooks/useSpaces.js'
 import { useLearningData } from '../../data/hooks/useLearningData.js'
 import { publishEncoding } from '../../data/firestore/cognitiveRepository.js'
 import { learningError } from './messages.js'
+import ReadNotice from '../../components/ReadNotice.jsx'
 
 function TextField({ label, name, value, onChange, help, rows = 3 }) {
   return <div className="field"><label htmlFor={`workshop-${name}`}>{label}</label><textarea id={`workshop-${name}`} maxLength={4000} rows={rows} value={value ?? ''} onChange={(event) => onChange(name, event.target.value)} aria-describedby={help ? `help-${name}` : undefined} />{help && <p className="field-help" id={`help-${name}`}>{help}</p>}</div>
 }
 function Check({ label, name, value, onChange }) { return <label className="learning-check"><input type="checkbox" checked={value === true} onChange={(event) => onChange(name, event.target.checked)} /> {label}</label> }
 export function LearningPager({ data }) {
-  return data.hasMore || data.canGoBack ? <div className="actions"><button className="button button-secondary" type="button" disabled={!data.canGoBack || data.loading} onClick={data.back ?? data.previousPage}>Anterior</button><span>Página {data.page ?? data.pageNumber}</span><button className="button button-secondary" type="button" disabled={!data.hasMore || data.loading} onClick={data.next ?? data.nextPage}>Siguiente</button></div> : null
+  return data.hasMore || data.canGoBack ? <div className="actions"><button className="button button-secondary" type="button" disabled={!data.canGoBack || data.loading} onClick={data.back ?? data.previousPage}>Anterior</button><span>Página {data.page ?? data.pageNumber}</span><button className="button button-secondary" type="button" disabled={!data.hasMore || data.status !== 'ready'} onClick={data.next ?? data.nextPage}>Siguiente</button></div> : null
 }
 function SpacePicker({ uid, p, update, onBuild }) {
   const palaces = useSpaces(uid, 'palace')
@@ -24,7 +25,7 @@ function SpacePicker({ uid, p, update, onBuild }) {
     if (key === 'palaceId') { update('macroId', null); update('locusId', null) }
     if (key === 'macroId') update('locusId', null)
   }
-  return <div>{options.map(({ data, key, label, items }) => <div className="field" key={key}><label htmlFor={key}>{label}</label><select id={key} disabled={data.loading} value={p[key] ?? ''} onChange={(event) => select(key, event.target.value)}><option value="">Selecciona un lugar</option>{items.map((entry) => <option key={entry.id} value={entry.id}>{entry.title ?? entry.name}</option>)}</select>{data.error && <p className="notice notice-error" role="alert">{data.error}</p>}<LearningPager data={data} /></div>)}<button type="button" className="button button-secondary" onClick={onBuild}>Guardar borrador y construir lugares</button><p className="field-help">Un locus aloja una sola codificación activa. Su disponibilidad se comprueba de nuevo al publicar.</p></div>
+  return <div>{options.map(({ data, key, label, items }) => <div className="field" key={key}><label htmlFor={key}>{label}</label><select id={key} disabled={data.status !== 'ready'} value={p[key] ?? ''} onChange={(event) => select(key, event.target.value)}><option value="">Selecciona un lugar</option>{items.map((entry) => <option key={entry.id} value={entry.id}>{entry.title ?? entry.name}</option>)}</select><ReadNotice data={data} /><LearningPager data={data} /></div>)}<button type="button" className="button button-secondary" onClick={onBuild}>Guardar borrador y construir lugares</button><p className="field-help">Un locus aloja una sola codificación activa. Su disponibilidad se comprueba de nuevo al publicar.</p></div>
 }
 function EntranceExam({ p, unit, update, onRework }) {
   const [scene, setScene] = useState('')

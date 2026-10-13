@@ -8,6 +8,7 @@ import { createSource, createUnit, publishEncoding, readReviewContext, readUnitC
 import { buildEncodingBundle, emptyWorkshop } from '@icarus/domain/encoding'
 import { newRecall, recallReducer } from '@icarus/domain/review'
 import { scheduleReview, unpackScheduler } from '@icarus/domain/scheduler'
+import { buildPrivateQuery, PRIVATE_QUERIES, PRIVATE_PAGE_SIZE } from '../../src/data/firestore/privateQueries.js'
 
 let environment
 const projectId = 'demo-memorizador-solar'
@@ -35,6 +36,79 @@ test('propietario lee fuentes y revisiones privadas; otra cuenta y anónimo no',
   await assertSucceeds(getDocs(collection(owner, 'users', uid, 'sources')))
   await assertFails(getDoc(doc(other, 'users', uid, 'sources', 'source')))
   await assertFails(getDoc(doc(anonymous, 'users', uid, 'sources', 'source')))
+})
+
+test('consultas reales de palacios, macros, loci, unidades y tarjetas aíslan cuentas y estaciones', async () => {
+  const own = environment.authenticatedContext(uid).firestore()
+  const other = environment.authenticatedContext('other-user').firestore()
+  const anon = environment.unauthenticatedContext().firestore()
+  await environment.withSecurityRulesDisabled(async (context) => {
+    const fixtureDb = context.firestore()
+    for (const account of [uid, 'other-user']) {
+      for (const [name, spec] of Object.entries(PRIVATE_QUERIES)) {
+        const value = spec.value ?? 'parent-a'
+        for (const suffix of ['a', 'b']) {
+          const payload = { id: `${name}-${suffix}`, userId: account, createdAt: Timestamp.fromMillis(1000), ordinal: 1, target: 'concept', dueAt: Timestamp.fromMillis(1000) }
+          if (spec.field) payload[spec.field] = value
+          await setDoc(doc(fixtureDb, 'users', account, spec.collection, payload.id), payload)
+        }
+        if (spec.field) {
+          const payload = { userId: account, createdAt: Timestamp.fromMillis(0), ordinal: 0, target: 'concept', dueAt: Timestamp.fromMillis(0), [spec.field]: spec.value ? 'retired' : 'parent-b' }
+          await setDoc(doc(fixtureDb, 'users', account, spec.collection, `${name}-different-parent`), payload)
+        }
+      }
+    }
+  })
+  for (const [name, spec] of Object.entries(PRIVATE_QUERIES)) {
+    const options = { value: spec.value ?? 'parent-a' }
+    const result = await assertSucceeds(getDocs(buildPrivateQuery(own, uid, name, options)))
+    assert.ok(result.docs.every((record) => record.data().userId === uid))
+    if (spec.field) assert.ok(result.docs.every((record) => record.data()[spec.field] === options.value))
+    assert.ok(result.docs.some((record) => record.id === `${name}-a`))
+    await assertFails(getDocs(buildPrivateQuery(other, uid, name, options)))
+    await assertFails(getDocs(buildPrivateQuery(anon, uid, name, options)))
+    const separate = await assertSucceeds(getDocs(buildPrivateQuery(other, 'other-user', name, options)))
+    assert.ok(separate.docs.every((record) => record.data().userId === 'other-user'))
+    if (spec.field && !spec.value) {
+      const different = await getDocs(buildPrivateQuery(own, uid, name, { value: 'parent-b' }))
+      assert.deepEqual(different.docs.map((record) => record.id), [`${name}-different-parent`])
+      assert.equal((await getDocs(buildPrivateQuery(own, uid, name, { value: 'no-such-parent' }))).empty, true)
+    }
+  }
+})
+
+test('macros, loci y repasos paginan más de 40 registros sin duplicados ni omisiones', async () => {
+  const own = environment.authenticatedContext(uid).firestore()
+  for (const name of ['macroStations', 'microStations', 'activeCards']) {
+    const spec = PRIVATE_QUERIES[name]
+    const options = { value: spec.value ?? 'parent-a' }
+    await environment.withSecurityRulesDisabled(async (context) => {
+      const fixtureDb = context.firestore()
+      const batch = writeBatch(fixtureDb)
+      for (let index = 0; index < 85; index += 1) {
+        const id = `record-${String(index).padStart(3, '0')}`
+        batch.set(doc(fixtureDb, 'users', uid, spec.collection, id), {
+          userId: uid, [spec.field]: options.value,
+          [spec.sort]: spec.sort === 'dueAt' ? Timestamp.fromMillis(Math.floor(index / 3) * 1000) : Math.floor(index / 3),
+        })
+      }
+      await batch.commit()
+    })
+    const seen = []; let cursor = null
+    for (;;) {
+      const result = await getDocs(buildPrivateQuery(own, uid, name, { ...options, cursor }))
+      const visible = result.docs.slice(0, PRIVATE_PAGE_SIZE)
+      seen.push(...visible.map((record) => record.id))
+      if (result.size <= PRIVATE_PAGE_SIZE) break
+      cursor = visible.at(-1)
+    }
+    assert.equal(seen.length, 85)
+    assert.equal(new Set(seen).size, 85)
+    assert.deepEqual(seen, Array.from({ length: 85 }, (_, index) => `record-${String(index).padStart(3, '0')}`))
+  }
+  assert.throws(() => buildPrivateQuery(own, '../other-user', 'palaces'))
+  assert.throws(() => buildPrivateQuery(own, uid, 'macroStations', { value: 'parent/invalid' }))
+  assert.throws(() => buildPrivateQuery(own, uid, 'activeCards', { value: 'retired' }))
 })
 
 test('cliente no crea, modifica ni elimina datos migrados o revisiones inmutables', async () => {

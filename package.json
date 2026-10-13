@@ -7,13 +7,15 @@
   "engines": { "node": ">=22.12.0" },
   "scripts": {
     "dev": "vite --host 0.0.0.0",
-    "build": "vite build",
+    "build": "npm run check:firestore && vite build",
+    "check:firestore": "node scripts/check-firestore.mjs",
     "preview": "vite preview --host 0.0.0.0",
     "lint": "eslint .",
     "test": "node --test tests/study.test.js tests/unit/*.test.js",
     "test:rules": "node --test tests/integration/*.test.js",
     "test:e2e": "node tests/e2e.mjs",
     "test:e2e:cognitive": "node tests/e2e-cognitive.mjs",
+    "test:e2e:firestore": "node tests/e2e-firestore-reads.mjs",
     "icarus:simulate": "node scripts/icarus-migrate.mjs simulate --input tests/fixtures/legacy-v1.json --output .icarus-simulations/result.json"
   },
   "dependencies": {

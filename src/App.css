@@ -260,3 +260,5 @@ kbd { font-family: inherit; border: 1px solid var(--border); background: var(--s
 .review-ratings { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .75rem; margin-top: 1.5rem; }
 .review-checklist { border-block: 1px solid var(--border); margin: 1.5rem 0; }
 @media (max-width: 650px) { .learning-comparison { grid-template-columns: 1fr; } .review-ratings { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+/* Firebase diagnostic messages may contain long index URLs. */
+.read-error-detail { white-space: pre-wrap; overflow-wrap: anywhere; font-size: .85rem; }

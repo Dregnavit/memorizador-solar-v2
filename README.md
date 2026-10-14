@@ -4,6 +4,8 @@ Aplicación web de repetición espaciada para prosa y poesía: React 18.3.1, Vit
 
 La evolución al Método Ícaro incorpora contratos versionados, preparación segura del legado, palacios/macros/loci, Taller obligatorio y repaso escalonado con FSRS por objetivo. Funciona con Firebase Spark, sin Cloud Functions; el estudio clásico permanece disponible. Consulta el [diagnóstico y plan](docs/architecture/icarus-roadmap.md), la [decisión Spark](docs/architecture/ADR-spark.md), la [guía de fundamentos](docs/phase-1-foundations.md) y la [guía del Taller y repaso](docs/phase-1-cognitive.md).
 
+La [Entrega 1: Modo Guiado](docs/guided-mode.md) incorpora introducción interactiva, ayuda por campo y modos Guiado/Normal persistentes por cuenta en el navegador. Usa «Nivel de ayuda» y «Cómo funciona» en el encabezado. No requiere variables, reglas, índices ni dependencias adicionales: basta desplegar el frontend. La gestión de manuscritos y el nuevo recorrido literal del [plan de evolución](docs/architecture/solar-evolution-plan.md) continúan pendientes.
+
 Las lecturas privadas distinguen errores, caché y respuestas confirmadas: una consulta fallida no muestra cero pendientes. Consulta el [diagnóstico de Firestore y pasos de despliegue](docs/firestore-read-diagnostics.md). `npm run check:firestore` valida consultas e índices del repositorio y forma parte del build; los índices reales deben comprobarse y publicarse por separado en Firebase.
 
 ## Desarrollo

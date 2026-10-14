@@ -1,3 +1,4 @@
+import ContextHelp from '../guidance/ContextHelp.jsx'
 import { useEffect, useRef, useState } from 'react'
 import { createMigrationPlan, MigrationError, simulateMigration, verifyLegacyBackup } from '@icarus/domain/migration'
 import { getIcarusCapabilities } from '@icarus/domain/flags'
@@ -86,7 +87,7 @@ export default function IcarusPreparation({ user, onBack }) {
   }
 
   return (
-    <section aria-labelledby="preparation-title">
+    <section aria-labelledby="preparation-title"><ContextHelp topic="preparation.overview" />
       <button type="button" className="button button-secondary back-button" onClick={onBack}>← Volver a mis textos</button>
       <p className="eyebrow">El archivo del claustro</p>
       <h2 id="preparation-title">Preparación del Método Ícaro</h2>
@@ -101,7 +102,7 @@ export default function IcarusPreparation({ user, onBack }) {
           <h3 id="backup-title">Resguardar los manuscritos</h3>
           <p>La captura incluye tus textos completos, sus fragmentos y el progreso guardado.</p>
           <div className="actions"><button className="button" type="button" disabled={busy} onClick={capture}>Capturar mi biblioteca</button>{busy && controller.current && <button className="button button-secondary" type="button" onClick={() => controller.current?.abort()}>Cancelar lectura</button>}</div>
-          <div className="field preparation-upload"><label htmlFor="icarus-backup-file">O abre un respaldo anterior</label><input id="icarus-backup-file" type="file" accept=".json,application/json" disabled={busy} onChange={upload} /></div>
+          <div className="field preparation-upload"><label htmlFor="icarus-backup-file">O abre un respaldo anterior</label><input id="icarus-backup-file" type="file" accept=".json,application/json" disabled={busy} onChange={upload} /><ContextHelp topic="preparation.file" /></div>
           <p className="field-help">Solo se aceptan respaldos de tu cuenta. El archivo permanece en este navegador.</p>
           {busy && <p className="loading" role="status"><span className="spinner" aria-hidden="true" />Comprobando…{captureCount ? ` ${captureCount.textCount} textos y ${captureCount.progressCount} repasos leídos.` : ''}</p>}
           {backup && <><p className="field-help">Integridad verificada mediante hash y manifiesto.</p><code className="hash-display">{backup.backupHash}</code><button type="button" className="button button-secondary" disabled={busy} onClick={() => downloadJson(backup, `icarus-backup-${backup.backupId}.json`)}>Descargar respaldo</button></>}

@@ -262,3 +262,42 @@ kbd { font-family: inherit; border: 1px solid var(--border); background: var(--s
 @media (max-width: 650px) { .learning-comparison { grid-template-columns: 1fr; } .review-ratings { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 /* Firebase diagnostic messages may contain long index URLs. */
 .read-error-detail { white-space: pre-wrap; overflow-wrap: anywhere; font-size: .85rem; }
+
+.guidance-controls { display: flex; flex-wrap: wrap; align-items: end; gap: .6rem; }
+.guidance-welcome { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.4rem; border-inline-start: 4px solid var(--accent); }
+.guidance-welcome p { margin: .4rem 0 0; max-width: 65ch; }
+.context-help { margin: .65rem 0 1rem; font-size: .94rem; line-height: 1.6; min-width: 0; }
+.guidance-brief { margin: 0 0 .35rem; color: var(--muted); }
+.context-help details { border-inline-start: 2px solid var(--border); padding-inline-start: .7rem; }
+.context-help summary, .guidance-step summary { cursor: pointer; color: var(--accent); padding: .25rem .15rem; overflow-wrap: anywhere; }
+summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 3px; }
+.context-help details[open] { background: var(--surface); border-color: var(--accent); padding: .65rem .85rem; border-radius: .3rem; }
+.guidance-details { display: grid; gap: .8rem; margin: .8rem 0; }
+.guidance-details dt { font-weight: bold; }
+.guidance-details dd { margin: .15rem 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.guidance-step { border: 1px solid var(--border); border-inline-start: 4px solid var(--accent); background: var(--surface); border-radius: .6rem; padding: 1rem 1.2rem; margin: 1rem 0; }
+.guidance-step h3 { margin: 0 0 .4rem; }
+.guidance-step p { margin: .5rem 0; }
+.guided-check-field { margin: .8rem 0 1rem; }
+.guided-check-field .learning-check { margin-bottom: .3rem; }
+.guidance-introduction { width: min(720px, calc(100% - 2rem)); height: min(860px, 88dvh); max-height: 88dvh; overflow: hidden; }
+.guidance-introduction[open] { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; }
+.guidance-intro-top { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+.guidance-intro-top .eyebrow { margin: .4rem 0; }
+.guidance-intro-top .button { padding: .35rem .55rem; flex-shrink: 0; }
+.guidance-intro-body { min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding-inline: .2rem .5rem; }
+.guidance-introduction .guidance-intro-actions { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; margin-top: .8rem; padding-top: .6rem; border-top: 1px solid var(--border); }
+.guidance-introduction h2 { margin-top: 0; }
+.guidance-introduction progress { width: 100%; height: .6rem; accent-color: var(--accent); }
+.guidance-example { border-inline-start: 3px solid var(--accent); background: var(--surface); padding: .8rem 1rem; border-radius: .3rem; }
+.guidance-example p { margin: .25rem 0; }
+.guidance-exercise { border: 1px solid var(--border); border-radius: .5rem; padding: .8rem; margin: 1rem 0; }
+.guidance-exercise legend { font-weight: bold; padding: 0 .3rem; }
+.guidance-exercise label { display: flex; align-items: start; gap: .6rem; padding: .5rem 0; cursor: pointer; }
+.guidance-exercise input { width: 1.1rem; height: 1.1rem; margin-top: .3rem; flex-shrink: 0; accent-color: var(--accent); }
+@media (max-width: 760px) {
+  .guidance-welcome { align-items: stretch; flex-direction: column; }
+  .guidance-controls { width: 100%; align-items: center; }
+  .guidance-introduction { max-height: 90dvh; padding: 1rem; }
+  .guidance-introduction .guidance-intro-actions .button { padding: .6rem .3rem; }
+}

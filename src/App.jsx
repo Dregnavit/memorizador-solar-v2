@@ -6,6 +6,7 @@ import Auth from './components/Auth'
 import Dashboard from './components/Dashboard'
 import TextDetail from './components/TextDetail'
 import StudyFlow from './components/StudyFlow'
+import GuidanceProvider, { GuidanceControls, GuidanceIntroduction, GuidanceWelcome } from './features/guidance/GuidanceProvider.jsx'
 import './App.css'
 
 const THEMES = ['medieval', 'light', 'dark']
@@ -101,12 +102,14 @@ export default function App() {
   }
 
   return (
+    <GuidanceProvider key={user?.uid ?? 'guest'} userId={user?.uid}>
     <div className="app-container" data-theme={theme}>
       <a className="skip-link" href="#main-content">Saltar al contenido</a>
       <header className="site-header">
         <div className="header-inner">
           <div className="brand"><SolarLogo /><div><h1>Memorizador Solar</h1><p className="brand-subtitle">Método Ícaro · Textos y poesía</p></div></div>
           <div className="header-controls">
+            {user && <GuidanceControls />}
             <div className="theme-control"><label htmlFor="theme">Tema</label>
               <select id="theme" value={theme} onChange={(event) => setTheme(event.target.value)}>
                 <option value="medieval">Medieval</option><option value="light">Claro</option><option value="dark">Oscuro</option>
@@ -121,6 +124,7 @@ export default function App() {
       </header>
       <main id="main-content" className="page" tabIndex={-1}>
         {logoutError && <p className="notice notice-error" role="alert">{logoutError}</p>}
+        {user && <GuidanceWelcome />}
         <ScreenBoundary key={`${user?.uid ?? 'guest'}-${selectedTextId ?? 'library'}-${Boolean(session)}-${preparationOpen}-${spacesOpen}-${learningOpen}`}>
           {configurationError ? (
             <section className="card configuration-card" role="alert"><h2>Configura Firebase para comenzar</h2><p>{configurationError}</p><p>Usa la configuración de la aplicación web en Firebase y las variables descritas en <code>.env.example</code>.</p></section>
@@ -141,6 +145,8 @@ export default function App() {
           ) : <Dashboard user={user} onOpenText={setSelectedTextId} />}
         </ScreenBoundary>
       </main>
+      <GuidanceIntroduction />
     </div>
+    </GuidanceProvider>
   )
 }

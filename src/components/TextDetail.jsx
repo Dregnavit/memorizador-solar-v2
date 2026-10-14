@@ -1,3 +1,4 @@
+import ContextHelp from '../features/guidance/ContextHelp.jsx'
 import { useEffect, useMemo, useState } from 'react'
 import { collection, doc, onSnapshot } from 'firebase/firestore'
 import { db } from '../firebase'
@@ -53,7 +54,7 @@ export default function TextDetail({ user, textId, onBack, onStartStudy }) {
         <div className="notice notice-error" role="alert"><p>{textError}</p><button className="button" type="button" onClick={() => setRetry((value) => value + 1)}>Reintentar</button></div>
       ) : !text ? <div className="card" role="status"><h2 id="detail-title">Texto no disponible</h2><p>Es posible que se haya eliminado desde otra sesión.</p></div> : (
         <><p className="eyebrow">{text.type === 'poesia' ? 'Poesía' : 'Prosa'} · {chunks.length} fragmentos</p><h2 id="detail-title">{text.title}</h2>
-          <div className="actions detail-actions"><button className="button" type="button" disabled={!ready} onClick={() => onStartStudy(chunks)}>Estudiar Todo</button><button className="button button-secondary" type="button" disabled={!ready} onClick={reviewPending}>Repasar Pendientes{ready ? ` (${pending.length})` : ''}</button></div>
+          <ContextHelp topic="classic.study" /><div className="actions detail-actions"><button className="button" type="button" disabled={!ready} onClick={() => onStartStudy(chunks)}>Estudiar Todo</button><button className="button button-secondary" type="button" disabled={!ready} onClick={reviewPending}>Repasar Pendientes{ready ? ` (${pending.length})` : ''}</button></div>
           {notice && <p className="notice notice-success" role="status">{notice}</p>}
           {progressError && <div className="notice notice-error" role="alert"><p>{progressError}</p><button className="button button-secondary" type="button" onClick={() => setRetry((value) => value + 1)}>Reintentar progreso</button></div>}
           {!chunks.length && <p className="notice" role="status">Este texto no contiene fragmentos válidos para estudiar.</p>}

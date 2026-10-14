@@ -1,3 +1,4 @@
+import ContextHelp from '../features/guidance/ContextHelp.jsx'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { addDoc, collection, deleteDoc, doc, getDocs, onSnapshot, query, serverTimestamp, where, writeBatch } from 'firebase/firestore'
 import { db } from '../firebase'
@@ -98,6 +99,7 @@ export default function Dashboard({ user, onOpenText }) {
 
   return (
     <section aria-labelledby="dashboard-title">
+      <ContextHelp topic="classic.overview" />
       <div className="page-heading"><div><p className="eyebrow">Tu biblioteca</p><h2 id="dashboard-title">Palabras que permanecen</h2><p className="muted">Transforma tus lecturas en pequeños ejercicios de memoria.</p></div><button type="button" className="button" onClick={openForm}>+ Nuevo Texto</button></div>
       {notice && <p className="notice notice-success" role="status">{notice}</p>}
       {error && <div className="notice notice-error" role="alert"><p>{error}</p><button className="button button-secondary" type="button" onClick={() => setRetry((value) => value + 1)}>Reintentar</button></div>}
@@ -115,9 +117,9 @@ export default function Dashboard({ user, onOpenText }) {
       <dialog ref={dialog} className="modal card" aria-labelledby="new-text-title" onCancel={(event) => { event.preventDefault(); if (!savingRef.current) setOpen(false) }}>
         <div className="modal-heading"><h2 id="new-text-title">Nuevo texto</h2><button className="button button-quiet" type="button" disabled={saving} onClick={() => setOpen(false)} aria-label="Cerrar formulario">×</button></div>
         <form onSubmit={createText}><fieldset disabled={saving}><legend className="sr-only">Contenido del nuevo texto</legend>
-          <div className="field"><label htmlFor="text-title">Título</label><input id="text-title" required maxLength={120} autoFocus value={title} onChange={(event) => setTitle(event.target.value)} /></div>
-          <div className="field"><label htmlFor="text-type">Tipo de texto</label><select id="text-type" value={type} onChange={(event) => setType(event.target.value)}><option value="prosa">Prosa</option><option value="poesia">Poesía</option></select></div>
-          <div className="field"><label htmlFor="text-content">Texto completo</label><textarea id="text-content" required maxLength={MAX_TEXT_LENGTH} value={rawText} onChange={(event) => setRawText(event.target.value)} aria-describedby="fragment-help" /><p id="fragment-help" className="field-help">{type === 'poesia' ? 'Cada verso será un fragmento.' : 'Cada oración o salto de línea será un fragmento.'} {chunks.length} fragmentos · {rawText.length.toLocaleString('es')} / {MAX_TEXT_LENGTH.toLocaleString('es')} caracteres.</p></div>
+          <div className="field"><label htmlFor="text-title">Título</label><input id="text-title" aria-describedby="guide-text-title" required maxLength={120} autoFocus value={title} onChange={(event) => setTitle(event.target.value)} /><ContextHelp topic="classic.title" descriptionId="guide-text-title" /></div>
+          <div className="field"><label htmlFor="text-type">Tipo de texto</label><select id="text-type" aria-describedby="guide-text-type" value={type} onChange={(event) => setType(event.target.value)}><option value="prosa">Prosa</option><option value="poesia">Poesía</option></select><ContextHelp topic="classic.type" descriptionId="guide-text-type" /></div>
+          <div className="field"><label htmlFor="text-content">Texto completo</label><textarea id="text-content" required maxLength={MAX_TEXT_LENGTH} value={rawText} onChange={(event) => setRawText(event.target.value)} aria-describedby="fragment-help guide-text-content" /><ContextHelp topic="classic.text" descriptionId="guide-text-content" /><p id="fragment-help" className="field-help">{type === 'poesia' ? 'Cada verso será un fragmento.' : 'Cada oración o salto de línea será un fragmento.'} {chunks.length} fragmentos · {rawText.length.toLocaleString('es')} / {MAX_TEXT_LENGTH.toLocaleString('es')} caracteres.</p></div>
           {formError && <p className="notice notice-error" role="alert">{formError}</p>}
           <div className="actions"><button className="button button-secondary" type="button" onClick={() => setOpen(false)}>Cancelar</button><button className="button" type="submit">{saving ? 'Guardando…' : 'Guardar texto'}</button></div>
         </fieldset></form>

@@ -16,6 +16,7 @@
     "test:e2e": "node tests/e2e.mjs",
     "test:e2e:cognitive": "node tests/e2e-cognitive.mjs",
     "test:e2e:firestore": "node tests/e2e-firestore-reads.mjs",
+    "test:e2e:guidance": "node tests/e2e-guidance.mjs",
     "icarus:simulate": "node scripts/icarus-migrate.mjs simulate --input tests/fixtures/legacy-v1.json --output .icarus-simulations/result.json"
   },
   "dependencies": {

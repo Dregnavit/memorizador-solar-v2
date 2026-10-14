@@ -2,7 +2,7 @@
 
 ## Activar la interfaz
 
-Publica primero `firestore.rules` y los cinco índices de `firestore.indexes.json`; espera a que estén listos. En Vite/Vercel añade `VITE_ICARUS_LEARNING_ENABLED=true` y recompila. Aparece «Aprender con Ícaro», junto al acceso a los palacios. La preparación del legado mantiene su propio flag y sigue siendo de solo lectura. No se han desplegado reglas ni modificado datos del proyecto real durante la implementación.
+Publica primero `firestore.rules` y los cinco índices de `firestore.indexes.json`; espera a que estén listos. En Vite/Vercel añade `VITE_ICARUS_LEARNING_ENABLED=true` y recompila. Aparece «Estudiar», junto al acceso a los palacios. La preparación del legado mantiene su propio flag y sigue siendo de solo lectura. No se han desplegado reglas ni modificado datos del proyecto real durante la implementación.
 
 El plan Spark usa exclusivamente React 18, JavaScript, Firebase 10 modular, Authentication y Firestore. No requiere Cloud Functions ni Blaze. Las reglas controlan propiedad, relaciones, estados, versiones, historiales, acoplamiento de escrituras y topes declarados; no convierten el navegador en un entorno confiable ni certifican comprensión. Consulta [ADR Spark](architecture/ADR-spark.md).
 
@@ -55,3 +55,5 @@ Ejecuta `npm test`, `npm run lint` y `npm run build`. Con Firestore demo local, 
 Inicia Vite demo en 5181 con los tres flags activos y Auth/Firestore en 9099/8080. Ejecuta `E2E_BASE_URL=http://127.0.0.1:5181 E2E_REQUIRE_PREPARATION=true E2E_REQUIRE_SPACES=true npm run test:e2e` y `E2E_BASE_URL=http://127.0.0.1:5181 npm run test:e2e:cognitive`. Ambos verifican configuración demo antes de crear cuentas. El segundo recorre prosa argumental, poema por estrofas, Taller guardado/reanudado, examen, ayudas, olvido, error offline/reintento, agendas separadas, consentimiento y móvil.
 
 La migración real del legado continúa deshabilitada hasta contar con snapshot consistente y restauración probada. Permanecen para fases posteriores: transferencias maduras y rutas sin locus, objetivos de relación/orden, editor de rutas y reasignación, atrios y ruedas combinatorias, ajuste personalizado de FSRS y sincronización offline reconciliada. El núcleo solicitado del Taller y el Repaso Escalonado ya está implementado; no se presenta como la totalidad de todas las extensiones del Blueprint.
+
+La evolución posterior incorpora archivado y recorrido literal independiente; consulta la [guía actual de Memorizador Solar](learning-and-lifecycle.md) y sus requisitos de activación. Este documento conserva el alcance de la entrega histórica.

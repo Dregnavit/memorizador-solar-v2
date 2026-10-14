@@ -71,3 +71,7 @@ La implementación no cambia servicios de escritura, gates, contratos, FSRS, reg
 Esta suite solo registra datos ficticios en `demo-memorizador-solar`, después de comprobar el proyecto y emulador de Auth. Usa las reglas reales del repositorio y las APIs existentes para preparar sus fixtures. No ejecutarla simultáneamente con suites que cambien reglas o limpien la base demo.
 
 Verificación realizada en esta entrega: **50 pruebas unitarias y 21 pruebas de Rules/consultas aprobadas**. Pasaron `test:e2e:guidance`, `test:e2e` (incluyendo espacios y preparación), `test:e2e:cognitive` y `test:e2e:firestore`, además de lint y build. La regresión nueva comprueba también sincronización entre pestañas y referencias ARIA sin IDs duplicados o destinos inexistentes. Se revisó visualmente la introducción en móvil con temas medieval y oscuro. El build conserva el aviso de Vite de un chunk superior a 500 kB; no impide compilar y no se ha ocultado ajustando el umbral.
+
+## Ampliación posterior: gestión y memoria literal
+
+La ayuda ahora cubre también objetivos, idioma/edición, cortes, criterios textuales, familiarización, audio local, pistas, corrección, secuencias, exámenes, apoyo espacial, archivado y eliminación. Consulta la [guía actual](learning-and-lifecycle.md). La afirmación anterior de despliegue solo frontend se refiere únicamente a Entrega 1: las nuevas funciones de gestión/literal requieren las reglas y la activación descritas en [configuración](architecture/evolution-implementation.md).

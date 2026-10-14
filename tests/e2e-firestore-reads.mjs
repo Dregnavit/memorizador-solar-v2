@@ -44,7 +44,7 @@ try {
     await createSpace(db, uid, { kind: 'locus', palaceId: `palace-${suffix}`, macroId: `macro-${suffix}`, name: `Atril ${suffix}`, cue: 'Atril de prueba', ordinal: 0, sensoryCues: [] }, `locus-${suffix}`)
   }
   await installRules(denial)
-  await page.getByRole('button', { name: 'Palacios Ícaro', exact: true }).click()
+  await page.getByRole('button', { name: 'Palacios de memoria', exact: true }).click()
   await page.getByRole('button', { name: 'Seleccionar palacio Palacio de prueba a', exact: true }).click()
   const macros = page.getByRole('region', { name: 'Macro-estaciones', exact: true })
   await macros.getByRole('alert').waitFor()
@@ -61,7 +61,7 @@ try {
   assert.equal(await page.getByRole('button', { name: 'Seleccionar locus Atril a', exact: true }).count(), 0)
 
   await installRules(denial)
-  await page.getByRole('button', { name: 'Aprender con Ícaro', exact: true }).click()
+  await page.getByRole('button', { name: 'Estudiar', exact: true }).click()
   const reviews = page.getByLabel('Repasos escalonados', { exact: true })
   await reviews.getByRole('alert').waitFor()
   await reviews.getByText('permission-denied', { exact: true }).waitFor()
@@ -75,7 +75,7 @@ try {
   assert.equal(await reviews.getByRole('button', { name: 'Iniciar repaso escalonado (0)', exact: true }).isDisabled(), true)
   await page.getByRole('button', { name: '← Volver al modo clásico', exact: true }).click()
   await context.setOffline(true)
-  await page.getByRole('button', { name: 'Aprender con Ícaro', exact: true }).click()
+  await page.getByRole('button', { name: 'Estudiar', exact: true }).click()
   await reviews.getByText(/Esperando confirmación de Firestore/).waitFor()
   assert.equal(await reviews.getByText(/0 objetivos pendientes/).count(), 0)
   await context.setOffline(false)

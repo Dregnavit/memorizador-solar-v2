@@ -3,8 +3,12 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "workspaces": ["packages/icarus-domain"],
-  "engines": { "node": ">=22.12.0" },
+  "workspaces": [
+    "packages/icarus-domain"
+  ],
+  "engines": {
+    "node": ">=22.12.0"
+  },
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "npm run check:firestore && vite build",
@@ -12,22 +16,24 @@
     "preview": "vite preview --host 0.0.0.0",
     "lint": "eslint .",
     "test": "node --test tests/study.test.js tests/unit/*.test.js",
-    "test:rules": "node --test tests/integration/*.test.js",
+    "test:rules": "node --test --test-concurrency=1 tests/integration/*.test.js",
     "test:e2e": "node tests/e2e.mjs",
     "test:e2e:cognitive": "node tests/e2e-cognitive.mjs",
     "test:e2e:firestore": "node tests/e2e-firestore-reads.mjs",
     "test:e2e:guidance": "node tests/e2e-guidance.mjs",
-    "icarus:simulate": "node scripts/icarus-migrate.mjs simulate --input tests/fixtures/legacy-v1.json --output .icarus-simulations/result.json"
+    "icarus:simulate": "node scripts/icarus-migrate.mjs simulate --input tests/fixtures/legacy-v1.json --output .icarus-simulations/result.json",
+    "test:e2e:literal": "node tests/e2e-literal.mjs"
   },
   "dependencies": {
     "@icarus/domain": "0.1.0",
     "firebase": "10.14.1",
+    "firebase-admin": "13.4.0",
     "react": "18.3.1",
     "react-dom": "18.3.1"
   },
   "devDependencies": {
-    "@firebase/rules-unit-testing": "3.0.4",
     "@eslint/js": "9.39.1",
+    "@firebase/rules-unit-testing": "3.0.4",
     "@vitejs/plugin-react": "6.1.2",
     "eslint": "9.39.1",
     "eslint-plugin-react-hooks": "5.2.0",

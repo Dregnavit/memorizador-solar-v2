@@ -1,4 +1,4 @@
-# Fundamentos Ícaro: operación y límites de la entrega
+# Fundamentos del estudio: operación y límites de la entrega
 
 ## Activación
 
@@ -16,7 +16,7 @@ La CLI `scripts/icarus-migrate.mjs` incluye `backup`, `verify`, `plan`, `restore
 
 ## Espacios
 
-En «Palacios Ícaro», crea un palacio y selecciónalo; crea una macro-estación y selecciónala; añade sus loci con anclaje, orden y señales sensoriales opcionales. El orden admite empates resueltos por ID. Los nombres y anclajes se mantienen estables; la edición y reasignación se añadirán con protocolos propios más adelante.
+En «Palacios de memoria», crea un palacio y selecciónalo; crea una macro-estación y selecciónala; añade sus loci con anclaje, orden y señales sensoriales opcionales. El orden admite empates resueltos por ID. Los nombres y anclajes se mantienen estables; la edición y reasignación se añadirán con protocolos propios más adelante.
 
 Archivar conserva todos los documentos y sus IDs. Archiva primero los hijos activos; «Mostrar archivados» permite restaurar las estaciones empezando por sus padres. Un locus ocupado no se libera automáticamente. Los loci nuevos permanecen libres hasta la publicación atómica del Taller.
 
@@ -37,3 +37,5 @@ El emulador no demuestra que los índices compuestos estén construidos en produ
 ## Continuación
 
 La biblioteca versionada, el Taller de ocho pasos y el repaso escalonado con FSRS independiente ya están implementados y se describen en la [guía del MVP cognitivo](phase-1-cognitive.md). La migración real, los atrios y las extensiones avanzadas continúan pendientes.
+
+La evolución posterior incorpora archivado y recorrido literal independiente; consulta la [guía actual de Memorizador Solar](learning-and-lifecycle.md) y sus requisitos de activación. Este documento conserva el alcance de la entrega histórica.

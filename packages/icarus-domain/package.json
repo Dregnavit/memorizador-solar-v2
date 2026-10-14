@@ -12,7 +12,8 @@
     "./flags": "./src/flags.js",
     "./encoding": "./src/encoding.js",
     "./review": "./src/review.js",
-    "./scheduler": "./src/scheduler.js"
+    "./scheduler": "./src/scheduler.js",
+    "./literal": "./src/literal.js"
   },
   "dependencies": {
     "ts-fsrs": "5.4.2",

@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { db } from '../../firebase.js'
 import { errorMessage } from '../../lib.js'
 import { MigrationError } from '@icarus/domain/migration'
-import { createSpace, newSpaceIntent, setSpaceArchived } from '../../data/firestore/spacesRepository.js'
+import { createSpace, newSpaceIntent, setSpaceArchived, finishLocusRest } from '../../data/firestore/spacesRepository.js'
 import { useSpaces } from '../../data/hooks/useSpaces.js'
 import ReadNotice from '../../components/ReadNotice.jsx'
 
@@ -12,7 +12,7 @@ const STATES = { free: 'Libre', reserved: 'Reservado', occupied: 'Ocupado', cool
 const isArchived = (item) => item?.lifecycle === 'archived' || item?.state === 'archived'
 const titleOf = (item) => item?.title ?? item?.name ?? ''
 const cueOf = (item) => item?.description ?? item?.spatialCue ?? item?.anchorDescription ?? ''
-const hasDependents = (kind, item) => kind === 'palace' ? item.activeMacroCount > 0 : kind === 'macro' ? item.activeLocusCount > 0 : Boolean(item.activeEncodingId) || !['free', 'archived'].includes(item.state)
+const hasDependents = (kind, item) => kind === 'palace' ? item.activeMacroCount > 0 : kind === 'macro' ? item.activeLocusCount > 0 : Boolean(item.activeEncodingId) || !['free', 'archived', 'cooling'].includes(item.state)
 const explainError = (error) => error instanceof MigrationError ? error.message : error?.name === 'ZodError' ? 'Revisa el nombre, el anclaje y el orden de la estación.' : errorMessage(error)
 
 function SpaceForm({ userId, kind, palaceId, macroId, onClose, onCreated }) {
@@ -78,7 +78,7 @@ function SpaceColumn({ kind, heading, description, data, selectedId, onSelect, o
           <button className="space-select" type="button" aria-pressed={item.id === selectedId} onClick={() => onSelect(item.id)} aria-label={`Seleccionar ${LABELS[kind]} ${titleOf(item)}`}><strong>{titleOf(item)}</strong><span>{cueOf(item)}</span></button>
           <div className="space-item-meta"><span className={`badge ${isArchived(item) ? '' : kind === 'locus' && item.state === 'free' ? 'badge-done' : ''}`}>{kind === 'locus' ? STATES[item.state] : isArchived(item) ? 'Archivado' : 'Activo'}</span><span>{kind === 'palace' ? `${item.activeMacroCount} macro-estaciones activas` : kind === 'macro' ? `${item.activeLocusCount} loci activos` : `Lugar ${item.ordinal}`}</span></div>
           {kind === 'locus' && item.sensoryCues.length > 0 && <p className="field-help">{item.sensoryCues.join(' · ')}</p>}
-          <button type="button" className="button button-quiet" disabled={busy || hasDependents(kind, item)} onClick={() => onArchive(kind, item)} aria-label={`${isArchived(item) ? 'Restaurar' : 'Archivar'} ${LABELS[kind]} ${titleOf(item)}`}>{isArchived(item) ? 'Restaurar' : 'Archivar'}</button>
+          <button type="button" className="button button-quiet" disabled={busy || hasDependents(kind, item)} onClick={() => onArchive(kind, item)} aria-label={`${item.state === 'cooling' ? 'Finalizar descanso' : isArchived(item) ? 'Restaurar' : 'Archivar'} ${LABELS[kind]} ${titleOf(item)}`}>{item.state === 'cooling' ? 'Finalizar descanso' : isArchived(item) ? 'Restaurar' : 'Archivar'}</button>
           {hasDependents(kind, item) && <p className="field-help">{kind === 'locus' ? 'Su codificación activa conserva este anclaje.' : 'Archiva primero sus estaciones activas.'}</p>}
         </li>
       ))}</ul>
@@ -115,8 +115,9 @@ export default function PalaceExplorer({ user, onBack }) {
     if (busyRef.current) return
     busyRef.current = true; setBusy(true); setNotice(''); setError('')
     try {
-      await setSpaceArchived(db, user.uid, { kind, id: item.id, archived: !isArchived(item), expectedVersion: item.version })
-      if (active.current) setNotice(isArchived(item) ? 'Estación restaurada. Su identidad y anclaje se conservan.' : 'Estación archivada. Puedes restaurarla desde «Mostrar archivados».')
+      if (item.state === 'cooling') await finishLocusRest(db, user.uid, item.id, item.version)
+      else await setSpaceArchived(db, user.uid, { kind, id: item.id, archived: !isArchived(item), expectedVersion: item.version })
+      if (active.current) setNotice(item.state === 'cooling' ? 'Descanso finalizado por tu decisión. El lugar puede volver a utilizarse; conserva su historial y contador.' : isArchived(item) ? 'Estación restaurada. Su identidad y anclaje se conservan.' : 'Estación archivada. Puedes restaurarla desde «Mostrar archivados».')
     } catch (failure) { if (active.current) setError(explainError(failure)) }
     finally { busyRef.current = false; if (active.current) setBusy(false) }
   }

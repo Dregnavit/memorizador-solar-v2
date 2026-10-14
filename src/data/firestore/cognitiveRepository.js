@@ -1,3 +1,5 @@
+import { EVOLUTION_ENABLED } from '../../evolution.js'
+import { requireActiveSource } from './sourceLifecycleRepository.js'
 import { collection, doc, getDocFromServer, runTransaction, serverTimestamp, Timestamp } from 'firebase/firestore'
 import { canonicalJson, hashValue, toTimestamp } from '@icarus/domain/codec'
 import { sourceSchema, sourceRevisionSchema, unitSchema, cardSchema, conceptSchema, encodingSchema, locusSchema, uidSchema, idSchema, reviewEventSchema, validateUnitAgainstRevision } from '@icarus/domain/schemas'
@@ -28,9 +30,11 @@ export async function createSource(db, uid, input, intentId) {
   const ref = privateRef(db, uid, 'sources', intentId)
   const now = toTimestamp(Date.now())
   const source = sourceSchema.parse({ id: intentId, userId: uid, schemaVersion: 1, version: 1, createdAt: now, title: input.title?.trim(), kind: input.kind, lifecycle: 'active', currentRevisionId: 'r1', provenance: { type: 'user' }, creationRequestHash: requestHash })
-  const revision = sourceRevisionSchema.parse({ id: 'r1', userId: uid, schemaVersion: 1, version: 1, createdAt: now, sourceId: intentId, revisionNumber: 1, originalText: input.originalText, contentHash, hashAlgorithm: 'sha256-canonical-json-v1', language: 'und', segmentationMode: input.segmentationMode, provenance: { type: 'user' } })
+  const revision = sourceRevisionSchema.parse({ id: 'r1', userId: uid, schemaVersion: input.learningGoal ? 2 : 1, version: 1, createdAt: now, sourceId: intentId, revisionNumber: 1, originalText: input.originalText, contentHash, hashAlgorithm: 'sha256-canonical-json-v1', ...(input.learningGoal ? { edition: input.edition || '', learningGoal: input.learningGoal } : {}), language: input.language?.trim() || 'und', segmentationMode: input.segmentationMode, provenance: { type: 'user' } })
   return runTransaction(db, async (tx) => {
     const previous = await tx.get(ref)
+    const maintenance = EVOLUTION_ENABLED ? await tx.get(doc(db, 'users', uid, 'control', 'maintenance')) : null
+    if (maintenance?.exists() && maintenance.data().blocked) throw new Error('Hay una eliminación en curso.')
     if (previous.exists()) {
       if (own(previous, uid).creationRequestHash !== requestHash) throw new MigrationError('intent-conflict', 'El intento corresponde a otro manuscrito.')
       return intentId
@@ -47,6 +51,7 @@ export async function createUnit(db, uid, sourceId, selection) {
   const ref = privateRef(db, uid, 'units', unitId)
   return runTransaction(db, async (tx) => {
     const [sourceSnapshot, revisionSnapshot, existing] = await Promise.all([tx.get(sourceRef), tx.get(doc(sourceRef, 'revisions', idSchema.parse(selection.revisionId))), tx.get(ref)])
+    await requireActiveSource(tx, db, uid, sourceId)
     const source = sourceSchema.parse(recordContract(own(sourceSnapshot, uid)))
     const revision = sourceRevisionSchema.parse(recordContract(own(revisionSnapshot, uid)))
     if (source.lifecycle !== 'active' || source.currentRevisionId !== revision.id) throw new MigrationError('stale-source', 'Selecciona la revisión activa de la fuente.')
@@ -68,7 +73,8 @@ export async function readUnitContext(db, uid, unitId) {
   validateUnitAgainstRevision(unit, revision)
   const draft = draftSnapshot.exists() ? own(draftSnapshot, uid) : null
   if (draft) workshopPayloadSchema.parse(draft.payload)
-  return { unit, source, revision, draft }
+  const membership = EVOLUTION_ENABLED ? await getDocFromServer(privateRef(db, uid, 'literalMemberships', unitId)) : null
+  return { unit, source, revision, draft, literalManaged: membership?.exists() }
 }
 
 export async function saveWorkshopDraft(db, uid, unitId, payload, step, expectedVersion) {
@@ -78,6 +84,7 @@ export async function saveWorkshopDraft(db, uid, unitId, payload, step, expected
   return runTransaction(db, async (tx) => {
     const [previous, unitSnapshot] = await Promise.all([tx.get(ref), tx.get(privateRef(db, uid, 'units', unitId))])
     const unit = own(unitSnapshot, uid)
+    await requireActiveSource(tx, db, uid, unit.sourceId)
     if (unit.status === 'ready' || unit.status === 'archived') throw new MigrationError('published-unit', 'Esta unidad ya está publicada o archivada.')
     if (previous.exists() && own(previous, uid).version === expectedVersion + 1 && previous.data().status === 'draft' && previous.data().step === step && canonicalJson(previous.data().payload) === canonicalJson(data)) return expectedVersion + 1
     if ((previous.exists() ? own(previous, uid).version : 0) !== expectedVersion) throw new MigrationError('version-conflict', 'El Taller cambió en otra pestaña. Recarga para recuperar el borrador guardado.')
@@ -104,8 +111,11 @@ export async function publishEncoding(db, uid, unitId, expectedDraftVersion) {
     if (draft.version !== expectedDraftVersion || draft.status !== 'draft') throw new MigrationError('version-conflict', 'El borrador cambió; revisa su última versión antes de publicar.')
     const unitRaw = own(unitSnapshot, uid)
     const unit = unitSchema.parse(recordContract(unitRaw))
+    await requireActiveSource(tx, db, uid, unit.sourceId)
     if (unit.status === 'ready' || unit.status === 'archived' || unit.activeEncodingId) throw new MigrationError('unit-in-use', 'Esta unidad ya tiene una codificación activa o está archivada.')
     const p = workshopPayloadSchema.parse(draft.payload)
+    const membership = EVOLUTION_ENABLED ? await tx.get(privateRef(db, uid, 'literalMemberships', unitId)) : null
+    if (membership?.exists() && p.mode !== 'conceptual') throw new Error('La literalidad de esta unidad tiene su propio recorrido. Elige Comprender y explicar en el Taller para evitar duplicar objetivos verbales.')
     const locusRef = privateRef(db, uid, 'microStations', p.locusId)
     const [revisionSnapshot, locusSnapshot, macroSnapshot, palaceSnapshot, historySnapshot] = await Promise.all([
       tx.get(doc(privateRef(db, uid, 'sources', unit.sourceId), 'revisions', unit.sourceRevisionId)), tx.get(locusRef), tx.get(privateRef(db, uid, 'macroStations', p.macroId)), tx.get(privateRef(db, uid, 'palaces', p.palaceId)), tx.get(doc(unitRef, 'revisions', `v${unit.version}`)),
@@ -138,6 +148,8 @@ export async function readReviewContext(db, uid, cardId) {
   const [unitSnapshot, encodingSnapshot] = await Promise.all([getDocFromServer(privateRef(db, uid, 'units', card.unitId)), getDocFromServer(privateRef(db, uid, 'encodings', card.encodingId))])
   const unit = unitSchema.parse(recordContract(own(unitSnapshot, uid)))
   const encoding = encodingSchema.parse(recordContract(own(encodingSnapshot, uid)))
+  const source = own(await getDocFromServer(privateRef(db, uid, 'sources', unit.sourceId)), uid)
+  if (source.lifecycle !== 'active') throw new Error('El manuscrito está archivado.')
   const [conceptSnapshot, locusSnapshot] = await Promise.all([getDocFromServer(privateRef(db, uid, 'concepts', encoding.conceptId)), getDocFromServer(privateRef(db, uid, 'microStations', encoding.locusId))])
   const concept = conceptSchema.parse(recordContract(own(conceptSnapshot, uid)))
   const locus = locusSchema.parse(recordContract(own(locusSnapshot, uid)))
@@ -166,6 +178,8 @@ export async function submitReview(db, uid, cardId, expectedVersion, context, ra
     }
     const card = cardSchema.parse(recordContract(own(cardSnapshot, uid)))
     if (card.version !== expectedVersion || card.lifecycle !== 'active' || card.target !== context.target) throw new MigrationError('version-conflict', 'Otra sesión modificó esta tarjeta. Vuelve a abrir el repaso actualizado.')
+    const unit = own(await tx.get(privateRef(db, uid, 'units', card.unitId)), uid)
+    await requireActiveSource(tx, db, uid, unit.sourceId)
     const next = scheduleReview(card.scheduler, rating, now)
     const event = reviewEventSchema.parse({ id: requestId, userId: uid, schemaVersion: 1, version: 1, createdAt: toTimestamp(now), cardId, target: card.target, clientRequestId: requestId, requestHash, ...evidence, previousCardVersion: card.version, newCardVersion: card.version + 1, reviewedAt: toTimestamp(now), dueBefore: card.dueAt, dueAfter: next.dueAt, schedulerBefore: card.scheduler, schedulerAfter: next.scheduler })
     tx.set(eventRef, { ...materialize(event), reviewedAt: firestoreTime(event.reviewedAt), dueBefore: firestoreTime(event.dueBefore), dueAfter: firestoreTime(event.dueAfter) })

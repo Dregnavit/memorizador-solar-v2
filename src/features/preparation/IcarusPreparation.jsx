@@ -11,7 +11,7 @@ const MAX_FILE_BYTES = 50 * 1024 * 1024
 
 function preparationError(error) {
   if (error instanceof MigrationError) return error.message
-  if (error?.name === 'ZodError' || error instanceof SyntaxError) return 'El archivo no tiene el formato de un respaldo Ícaro válido. No se modificó tu biblioteca.'
+  if (error?.name === 'ZodError' || error instanceof SyntaxError) return 'El archivo no tiene el formato de un respaldo versionado válido. No se modificó tu biblioteca.'
   if (error?.code) return errorMessage(error)
   return 'No se pudo comprobar el archivo. Revisa su formato; tus datos siguen intactos.'
 }
@@ -90,9 +90,9 @@ export default function IcarusPreparation({ user, onBack }) {
     <section aria-labelledby="preparation-title"><ContextHelp topic="preparation.overview" />
       <button type="button" className="button button-secondary back-button" onClick={onBack}>← Volver a mis textos</button>
       <p className="eyebrow">El archivo del claustro</p>
-      <h2 id="preparation-title">Preparación del Método Ícaro</h2>
+      <h2 id="preparation-title">Preparación del archivo clásico</h2>
       <p className="muted">Conserva una copia de tus manuscritos y comprueba su preparación. El repaso clásico sigue disponible.</p>
-      <div className="notice" role="note"><strong>Simulación local.</strong> Aquí se comprueban fuentes y fragmentos; todavía no se crean palacios, conceptos ni tarjetas Ícaro en tu cuenta.</div>
+      <div className="notice" role="note"><strong>Simulación local.</strong> Aquí se comprueban fuentes y fragmentos; todavía no se crean palacios, conceptos ni tarjetas de estudio en tu cuenta.</div>
       {profileState.status === 'unavailable' || profileState.status === 'invalid' ? <p className="notice notice-error" role="status">No se pudo verificar la configuración de preparación. Las operaciones de esta pantalla siguen siendo de lectura y simulación.</p> : null}
       {capabilities.legacyWritesLocked && <p className="notice" role="status">La biblioteca está protegida temporalmente contra cambios. Puedes consultar y capturar sus textos.</p>}
       {error && <p className="notice notice-error" role="alert">{error}</p>}
@@ -111,10 +111,10 @@ export default function IcarusPreparation({ user, onBack }) {
           <h3 id="simulation-title">Comprobar la preparación</h3>
           {!plan ? <p className="muted">Captura tu biblioteca o abre una copia para comprobar su contenido.</p> : <>
             <dl className="preparation-stats"><div><dt>Fuentes</dt><dd>{plan.summary.sourceCount}</dd></div><div><dt>Unidades</dt><dd>{plan.summary.unitCount}</dd></div><div><dt>Repasos preservados</dt><dd>{plan.summary.legacyProgressCount}</dd></div><div><dt>Fragmentos por revisar</dt><dd>{plan.summary.unresolvedCount}</dd></div></dl>
-            <p>Todas las unidades requerirán elaboración conceptual y el Taller antes de entrar al repaso Ícaro.</p>
+            <p>Todas las unidades requerirán elaboración conceptual y el Taller antes de entrar al repaso conceptual.</p>
             {plan.summary.blockerCount > 0 && <p className="notice notice-error" role="alert">Hay {plan.summary.blockerCount} textos que necesitan revisión. La aplicación del plan está bloqueada y sus datos permanecen en el respaldo.</p>}
             <div className="actions"><button type="button" className="button" disabled={busy || plan.summary.blockerCount > 0} onClick={simulate}>Simular preparación</button><button type="button" className="button button-secondary" disabled={busy} onClick={() => downloadJson(plan, `icarus-plan-${backup.backupId}.json`)}>Descargar plan</button></div>
-            {simulation && <ul className="verification-list" aria-label="Comprobaciones completadas"><li>Restauración local comprobada.</li><li>Textos y progreso originales preservados.</li><li>Segunda ejecución: 0 documentos duplicados.</li><li>Tarjetas Ícaro creadas: 0.</li></ul>}
+            {simulation && <ul className="verification-list" aria-label="Comprobaciones completadas"><li>Restauración local comprobada.</li><li>Textos y progreso originales preservados.</li><li>Segunda ejecución: 0 documentos duplicados.</li><li>Tarjetas de estudio creadas: 0.</li></ul>}
             {plan.issues.length > 0 && <details className="preparation-issues"><summary>Observaciones ({plan.issues.length})</summary><ul>{plan.issues.map((issue, index) => <li key={`${issue.code}-${index}`}>{issue.message}</li>)}</ul></details>}
           </>}
         </section>

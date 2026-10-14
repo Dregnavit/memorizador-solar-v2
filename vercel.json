@@ -1,0 +1,5 @@
+{
+  "functions": {
+    "api/manuscripts.js": { "maxDuration": 60 }
+  }
+}

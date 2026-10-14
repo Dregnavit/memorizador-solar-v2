@@ -96,7 +96,7 @@ try {
   const documents = async (kind) => (await getDocs(collection(db, 'users', uid, kind))).docs
   assert.equal((await documents('cards')).length, 2)
 
-  await page.getByRole('button', { name: 'Aprender con Ícaro', exact: true }).click()
+  await page.getByRole('button', { name: 'Estudiar', exact: true }).click()
   await page.getByRole('button', { name: 'Abrir manuscrito Manuscrito de la guía', exact: true }).click()
   await page.getByRole('button', { name: 'Continuar Taller de esta unidad', exact: true }).click()
   await mode('guided')
@@ -190,7 +190,7 @@ try {
   await page.getByRole('button', { name: '1 · Repetir', exact: true }).click()
   await page.getByRole('button', { name: 'Comenzar recuperación', exact: true }).waitFor()
   assert.equal((await documents('reviewEvents')).length, 1)
-  await page.getByRole('button', { name: 'Terminar sesión Ícaro', exact: true }).click()
+  await page.getByRole('button', { name: 'Terminar sesión', exact: true }).click()
 
   await mode('normal')
   await page.getByRole('button', { name: 'Cerrar sesión', exact: true }).click()

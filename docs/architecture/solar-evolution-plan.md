@@ -1,8 +1,8 @@
 # Memorizador Solar: orientación, gestión de manuscritos y memoria literal
 
-Estado: diagnóstico y propuesta de implementación. Base inspeccionada: `85c019e`. La Entrega 1 (orientación y ayuda, 1A/1B) se ha implementado posteriormente; consulta [funcionamiento y verificación](../guided-mode.md). Las entregas 2–4 siguen propuestas, sin implementación en esta entrega.
+Estado: diagnóstico y propuesta de implementación. Base inspeccionada: `85c019e`. La Entrega 1 (orientación y ayuda, 1A/1B) se ha implementado posteriormente; consulta [funcionamiento y verificación](../guided-mode.md). Las entregas 2–4 se implementaron después; consulta [contratos, seguridad y activación](evolution-implementation.md) y la [guía de uso](../learning-and-lifecycle.md).
 
-Este documento conserva el diagnóstico y el diseño presentados antes de cambiar contratos. Salvo la Entrega 1 indicada arriba, las funcionalidades descritas como propuestas todavía no están implementadas. No se han consultado ni modificado documentos privados de Firebase. El estado de las reglas e índices remotos no se deduce del repositorio.
+Este documento conserva el diagnóstico y el diseño presentados antes de cambiar contratos. Los apartados siguientes conservan el diseño aprobado y su estado durante la auditoría; el estado posterior de implementación está en el documento enlazado arriba. No se han consultado ni modificado documentos privados de Firebase. El estado de las reglas e índices remotos no se deduce del repositorio.
 
 ## 1. Diagnóstico comprobado
 

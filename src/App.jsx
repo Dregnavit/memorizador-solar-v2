@@ -107,7 +107,7 @@ export default function App() {
       <a className="skip-link" href="#main-content">Saltar al contenido</a>
       <header className="site-header">
         <div className="header-inner">
-          <div className="brand"><SolarLogo /><div><h1>Memorizador Solar</h1><p className="brand-subtitle">Método Ícaro · Textos y poesía</p></div></div>
+          <div className="brand"><SolarLogo /><div><h1>Memorizador Solar</h1><p className="brand-subtitle">Memoria, comprensión y recitación</p></div></div>
           <div className="header-controls">
             {user && <GuidanceControls />}
             <div className="theme-control"><label htmlFor="theme">Tema</label>
@@ -115,9 +115,9 @@ export default function App() {
                 <option value="medieval">Medieval</option><option value="light">Claro</option><option value="dark">Oscuro</option>
               </select>
             </div>
-            {user && PREPARATION_ENABLED && <button className="button button-secondary" type="button" disabled={Boolean(session) || learningSession || preparationOpen} onClick={() => { setPreparationOpen(true); setSpacesOpen(false); setLearningOpen(false) }}>Preparar Ícaro</button>}
-            {user && (SPACES_ENABLED || LEARNING_ENABLED) && <button className="button button-secondary" type="button" disabled={Boolean(session) || learningSession || spacesOpen} onClick={() => { setSpacesOpen(true); setPreparationOpen(false); setLearningOpen(false) }}>Palacios Ícaro</button>}
-            {user && LEARNING_ENABLED && <button className="button button-secondary" type="button" disabled={Boolean(session) || learningOpen} onClick={() => { setLearningOpen(true); setPreparationOpen(false); setSpacesOpen(false) }}>Aprender con Ícaro</button>}
+            {user && PREPARATION_ENABLED && <button className="button button-secondary" type="button" disabled={Boolean(session) || learningSession || preparationOpen} onClick={() => { setPreparationOpen(true); setSpacesOpen(false); setLearningOpen(false) }}>Preparar archivo clásico</button>}
+            {user && (SPACES_ENABLED || LEARNING_ENABLED) && <button className="button button-secondary" type="button" disabled={Boolean(session) || learningSession || spacesOpen} onClick={() => { setSpacesOpen(true); setPreparationOpen(false); setLearningOpen(false) }}>Palacios de memoria</button>}
+            {user && LEARNING_ENABLED && <button className="button button-secondary" type="button" disabled={Boolean(session) || learningOpen} onClick={() => { setLearningOpen(true); setPreparationOpen(false); setSpacesOpen(false) }}>Estudiar</button>}
             {user && <button className="button button-secondary" type="button" disabled={logoutLoading} onClick={logout}>{logoutLoading ? 'Saliendo…' : 'Cerrar sesión'}</button>}
           </div>
         </div>

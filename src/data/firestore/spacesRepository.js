@@ -123,3 +123,14 @@ export async function setSpaceArchived(database, userId, { kind, id, archived, e
 export function newSpaceIntent(database, userId, kind) {
   return doc(collection(database, 'users', userId, typeFor(kind).collection)).id
 }
+
+// Reuse after rest is an explicit user decision, never an automatic timer.
+export async function finishLocusRest(database, userId, id, expectedVersion) {
+  const ref = pathFor(database, userId, 'microStations', idSchema.parse(id))
+  return runTransaction(database, async (tx) => {
+    const snapshot = await tx.get(ref); const original = owned(snapshot, userId); const locus = locusSchema.parse(spaceContract(original))
+    if (locus.version !== expectedVersion || locus.state !== 'cooling' || locus.activeEncodingId || locus.activeBinding) throw new MigrationError('space-in-use', 'El locus cambió o no está en descanso.')
+    snapshotBefore(tx, ref, original)
+    tx.update(ref, { state: 'free', version: locus.version + 1 })
+  })
+}

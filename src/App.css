@@ -301,3 +301,22 @@ summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; b
   .guidance-introduction { max-height: 90dvh; padding: 1rem; }
   .guidance-introduction .guidance-intro-actions .button { padding: .6rem .3rem; }
 }
+
+/* Literal study and manuscript lifecycle keep the existing theme variables. */
+.source-management { margin-block: 1rem; border-top: 1px solid var(--border); padding-top: .75rem; }
+.literal-training { max-width: 58rem; margin-inline: auto; }
+.literal-training textarea, .deletion-confirmation input { width: 100%; }
+.literal-differences { padding-left: 1.4rem; display: grid; gap: .6rem; }
+.literal-differences li { padding: .5rem; border: 1px solid var(--border); border-radius: .4rem; overflow-wrap: anywhere; }
+.literal-differences del { text-decoration: line-through; }
+.literal-differences ins { text-decoration: underline; font-weight: 700; }
+.literal-diff p { line-height: 1.6; }
+.literal-differences .diff-omission { border-left: .3rem solid #ad4b22; }
+.literal-differences .diff-insertion { border-left: .3rem solid #38824d; }
+.literal-differences .diff-substitution { border-left: .3rem solid var(--accent); }
+.source-reading { white-space: pre-wrap; overflow-wrap: anywhere; }
+.deletion-confirmation progress, .source-management progress { width: 100%; }
+.form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr)); gap: 1rem; }
+.literal-training label, .card > label, .card fieldset > label { display: grid; gap: .4rem; margin-block: .8rem; }
+.literal-training .learning-check, .card fieldset .learning-check { display: flex; }
+@media (max-width: 600px) { .literal-training { padding: 1rem; } .literal-training .actions { flex-direction: column; align-items: stretch; } }

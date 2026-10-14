@@ -49,7 +49,7 @@ function ReviewCard({ user, data, position, total, onNext, onCancel }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [context, cap, retain])
   return <section className="card stepped-review" aria-labelledby="review-title">
-    <div className="page-heading"><div><p className="eyebrow">Repaso Escalonado · {TARGET_LABELS[card.target]}</p><h2 id="review-title" ref={focusTarget} tabIndex={-1}>Tarjeta {position} de {total}</h2></div><button className="button button-secondary" type="button" disabled={context.phase === 'COMMIT'} onClick={onCancel}>Terminar sesión Ícaro</button></div>
+    <div className="page-heading"><div><p className="eyebrow">Repaso Escalonado · {TARGET_LABELS[card.target]}</p><h2 id="review-title" ref={focusTarget} tabIndex={-1}>Tarjeta {position} de {total}</h2></div><button className="button button-secondary" type="button" disabled={context.phase === 'COMMIT'} onClick={onCancel}>Terminar sesión</button></div>
     {error && <p className="notice notice-error" role="alert">{error} Tu intento permanece en esta tarjeta para reintentar.</p>}
     {!context.revealed && <div className="locus-cue"><h3>{locus.name}</h3><p>{locus.anchorDescription}</p><p className="field-help">Ubícate mentalmente. La escena y la fuente se mostrarán después de tu intento.</p></div>}
     {context.phase === 'ORIENT' && <><p>{card.target === 'verbatim' ? 'Recupera las palabras exactas desde este anclaje.' : encoding.retrievalPrompt}</p><button className="button" type="button" onClick={next}>Comenzar recuperación</button></>}

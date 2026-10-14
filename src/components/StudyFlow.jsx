@@ -63,7 +63,7 @@ export default function StudyFlow({ user, textId, chunks, onFinish, onCancel }) 
 
   return (
     <section className="study-shell" aria-labelledby="study-title" aria-busy={saving}>
-      <div className="study-header"><div><p className="eyebrow">Método Ícaro</p><h2 id="study-title">Fragmento {index + 1} de {cards.length}</h2></div><button className="button button-secondary" type="button" disabled={saving} onClick={onCancel}>Volver al texto</button></div>
+      <div className="study-header"><div><p className="eyebrow">Repaso de fragmentos</p><h2 id="study-title">Fragmento {index + 1} de {cards.length}</h2></div><button className="button button-secondary" type="button" disabled={saving} onClick={onCancel}>Volver al texto</button></div>
       <ContextHelp topic="classic.study" /><progress className="study-progress" value={index} max={cards.length} aria-label={`${index} de ${cards.length} fragmentos completados`} />
       <div className="card flashcard" aria-live="polite" aria-atomic="true">
         {revealed ? <p className="flashcard-text">{current.text}</p> : <div className="recall-prompt"><h3>Haz espacio a la memoria</h3><p>Intenta recitar el fragmento antes de revelarlo.<br />Después, evalúa cuánto recordaste.</p></div>}

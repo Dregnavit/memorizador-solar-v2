@@ -26,13 +26,15 @@ export const sourceSchema = z.object({
   creationRequestHash: hashSchema.optional(),
 }).strict()
 
-export const sourceRevisionSchema = z.object({
+const sourceRevisionV1 = z.object({
   ...base, sourceId: idSchema, revisionNumber: version,
   originalText: text.max(60000), contentHash: hashSchema,
   hashAlgorithm: z.literal('sha256-canonical-json-v1'), language: z.string().min(1),
   segmentationMode: z.enum(['legacy', 'sentences', 'verses', 'stanzas', 'manual-reviewed']),
   provenance: provenanceSchema,
 }).strict()
+
+export const sourceRevisionSchema = z.union([sourceRevisionV1, sourceRevisionV1.extend({ schemaVersion: z.literal(2), edition: z.string().max(500), learningGoal: z.enum(['conceptual', 'literal', 'combined']), segmentationMode: z.enum(['sentences', 'verses', 'stanzas', 'paragraphs', 'manual-reviewed']) }).strict()])
 
 export const unitSchema = z.object({
   ...base, sourceId: idSchema, sourceRevisionId: idSchema, unitRevision: version,
@@ -81,13 +83,14 @@ export const macroStationSchema = z.object({
   ...base, ...spaceMetadata, palaceId: idSchema, name: text.max(120), ordinal: z.number().int().nonnegative().max(1000000),
   spatialCue: text.max(4000), lifecycle: z.enum(['active', 'archived']), activeLocusCount: z.number().int().nonnegative().max(1000000).default(0), lastMutation: childMutationSchema.default(null),
 }).strict()
-export const locusSchema = z.object({
+const locusObject = z.object({
   ...base, ...spaceMetadata, palaceId: idSchema, macroId: idSchema, name: text.max(120), anchorDescription: text.max(4000),
   sensoryCues: z.array(text.max(200)).max(6), ordinal: z.number().int().nonnegative().max(1000000),
   state: z.enum(['free', 'reserved', 'occupied', 'cooling', 'archived']),
   activeEncodingId: idSchema.nullable(), usageCountLifetime: z.number().int().nonnegative(),
-}).strict().superRefine((locus, context) => {
-  if ((locus.state === 'occupied') !== Boolean(locus.activeEncodingId)) {
+}).strict()
+export const locusSchema = z.union([locusObject, locusObject.extend({ schemaVersion: z.literal(2), activeBinding: z.object({ kind: z.literal('literal'), id: idSchema }).strict().nullable() }).strict()]).superRefine((locus, context) => {
+  if ((locus.state === 'occupied') !== Boolean(locus.activeEncodingId || locus.activeBinding)) {
     context.addIssue({ code: 'custom', path: ['activeEncodingId'], message: 'Ocupación y codificación activa deben coincidir.' })
   }
 })

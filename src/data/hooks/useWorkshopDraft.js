@@ -21,7 +21,7 @@ export function useWorkshopDraft(uid, unitId) {
     active.current = true
     readUnitContext(db, uid, unitId).then((result) => {
       if (cancelled || !active.current) return
-      const data = result.draft?.payload ?? emptyWorkshop(result.source.kind)
+      const data = result.draft?.payload ?? { ...emptyWorkshop(result.source.kind), ...(result.literalManaged ? { mode: 'conceptual' } : {}) }
       version.current = result.draft?.version ?? 0
       savedKey.current = result.draft ? JSON.stringify({ payload: data, step: result.draft.step }) : ''
       const published = result.unit.status === 'ready'
